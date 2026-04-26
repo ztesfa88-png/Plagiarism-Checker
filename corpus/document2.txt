@@ -1,0 +1,1 @@
+Students and writers can use the system to verify originality before submission. The matching engine looks for consecutive phrase overlap and returns the highest similarity matches for each document in the corpus.

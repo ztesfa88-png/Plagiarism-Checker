@@ -1,0 +1,13 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+venv/
+
+# Uploads (created at runtime)
+uploads/
+
+# OS files
+Thumbs.db
+.DS_Store

@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Plagiarism Detection System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+    <div class="app">
+        <div class="header">
+            <div class="badge">Wolkite University · Group 6</div>
+            <h1>Plagiarism Detection System</h1>
+            <p>Unsupervised ML · TF-IDF + MinHash LSH · Ensemble Scoring</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('check')">Check Document</button>
+            <button class="tab-btn" onclick="switchTab('results')">Results</button>
+            <button class="tab-btn" onclick="switchTab('corpus')">Corpus</button>
+            <button class="tab-btn" onclick="switchTab('history')">History</button>
+        </div>
+
+        <div id="tab-check">
+            <div class="card">
+                <div class="section-title">Upload or Paste Document</div>
+                
+                <!-- File Upload Section -->
+                <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f8fafc; border-radius: 6px; border: 2px dashed #cbd5e1;">
+                    <div style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">📁 Upload File</div>
+                    <input type="file" id="file-input" accept=".txt,.pdf,.docx" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; margin-bottom: 8px;" />
+                    <div style="font-size: 12px; color: #64748b;">Supported: .txt, .pdf, .docx (Max 16MB)</div>
+                    <button class="btn-primary" style="width: 100%; margin-top: 8px;" onclick="uploadFile()">Upload & Analyze ↗</button>
+                </div>
+
+                <!-- Or Separator -->
+                <div style="text-align: center; margin: 1.5rem 0; color: #cbd5e1; font-size: 12px; font-weight: 500;">— OR —</div>
+
+                <!-- Text Paste Section -->
+                <textarea class="input-area" id="doc-input" placeholder="Or paste your text here for plagiarism analysis..."></textarea>
+                <div class="row-end">
+                    <span id="word-count" style="font-size:12px;color:var(--color-text-secondary);">0 words</span>
+                    <button class="btn-secondary" onclick="clearInput()">Clear</button>
+                    <button class="btn-primary" id="check-btn" onclick="runCheck()">Analyze ↗</button>
+                </div>
+
+                <!-- Sentence Check Section -->
+                <div style="margin-top: 1.5rem; padding: 1rem; background: #fef3c7; border-radius: 6px; border: 1px solid #f59e0b;">
+                    <div style="font-size: 13px; font-weight: 500; margin-bottom: 8px; color: #92400e;">🔍 Quick Sentence Check</div>
+                    <textarea class="input-area" id="sentence-input" placeholder="Paste a single sentence here to check against corpus..." style="min-height: 80px; background: #ffffff;"></textarea>
+                    <div style="margin-top: 8px;">
+                        <button class="btn-primary" style="background: #f59e0b; color: #92400e;" onclick="checkSentence()">Check Sentence ↗</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-title">Pipeline stages</div>
+                <div id="pipeline-steps">
+                    <div class="pipeline-step"><div class="step-dot pending">1</div><div class="step-info"><div class="step-name">Text preprocessing</div><div class="step-desc">Lowercase · stopword removal · lemmatization · shingling</div></div><div class="step-time" id="t1"></div></div>
+                    <div class="pipeline-step"><div class="step-dot pending">2</div><div class="step-info"><div class="step-name">Feature extraction</div><div class="step-desc">TF-IDF vectorization · MinHash signature (128 perms)</div></div><div class="step-time" id="t2"></div></div>
+                    <div class="pipeline-step"><div class="step-dot pending">3</div><div class="step-info"><div class="step-name">Similarity detection</div><div class="step-desc">LSH candidate retrieval · cosine similarity · ensemble scoring</div></div><div class="step-time" id="t3"></div></div>
+                    <div class="pipeline-step"><div class="step-dot pending">4</div><div class="step-info"><div class="step-name">Sentence-level analysis</div><div class="step-desc">Punkt segmentation · sentence cosine matching (threshold 0.70)</div></div><div class="step-time" id="t4"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-results" style="display:none">
+            <div id="results-empty" class="empty-state">
+                <div style="font-size:32px;color:var(--color-border-secondary);">◎</div>
+                <p>No analysis yet. Submit a document to see results.</p>
+            </div>
+            <div id="results-content" style="display:none">
+                <div class="card">
+                    <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+                        <div class="score-ring-wrap">
+                            <div class="score-value" id="res-score">—</div>
+                            <div class="score-label">Ensemble score</div>
+                        </div>
+                        <div style="flex:1;min-width:200px;">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                                <span style="font-size:14px;font-weight:500;">Risk level:</span>
+                                <span class="risk-badge" id="res-risk">—</span>
+                            </div>
+                            <div class="score-bar"><div class="score-bar-fill" id="res-bar" style="width:0%;background:#E24B4A;"></div></div>
+                            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-secondary);margin-top:4px;">
+                                <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metrics-grid" style="margin-bottom:1rem;">
+                    <div class="metric-card"><div class="metric-val" id="m-cosine">—</div><div class="metric-lbl">Cosine score (60%)</div></div>
+                    <div class="metric-card"><div class="metric-val" id="m-jaccard">—</div><div class="metric-lbl">Jaccard score (40%)</div></div>
+                    <div class="metric-card"><div class="metric-val" id="m-matches">—</div><div class="metric-lbl">Matched sentences</div></div>
+                </div>
+
+                <div class="card">
+                    <div class="section-title">Matched Files & Similarity</div>
+                    <div id="top-matches"></div>
+                </div>
+
+                <div class="card">
+                    <div class="section-title">Detailed Matching Parts</div>
+                    <div id="flagged-sentences"></div>
+                </div>
+
+                <div class="card">
+                    <div class="section-title">Analysis explanation</div>
+                    <div id="explanation" style="font-size:13px;line-height:1.7;color:var(--color-text-secondary);"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-corpus" style="display:none">
+            <div class="card">
+                <div class="section-title">Add to corpus</div>
+                <textarea class="input-area" id="corpus-input" placeholder="Paste a reference academic document to add to the corpus database..." style="min-height:120px;"></textarea>
+                <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+                    <input type="text" id="corpus-title" placeholder="Document title" style="flex:1;font-size:13px;" />
+                    <button class="btn-primary" onclick="addToCorpus()">Add to corpus ↗</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="section-title">Corpus documents (<span id="corpus-count">0</span>)</div>
+                <div id="corpus-list"><div class="empty-state" style="padding:1.5rem 0;"><p>No documents in corpus yet.</p></div></div>
+            </div>
+        </div>
+
+        <div id="tab-history" style="display:none">
+            <div class="card">
+                <div class="section-title">Submission history</div>
+                <div id="history-list"><div class="empty-state" style="padding:1.5rem 0;"><p>No previous submissions.</p></div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentResult = null;
+        let analyzing = false;
+
+        const docInput = document.getElementById('doc-input');
+        docInput.addEventListener('input', () => {
+            const words = docInput.value.trim().split(/\s+/).filter(w => w).length;
+            document.getElementById('word-count').textContent = words + ' words';
+        });
+
+        function switchTab(name) {
+            ['check','results','corpus','history'].forEach(t => {
+                document.getElementById('tab-'+t).style.display = t === name ? 'block' : 'none';
+                document.querySelectorAll('.tab-btn').forEach((b,i) => {
+                    const tabs = ['check','results','corpus','history'];
+                    b.classList.toggle('active', tabs[i] === name);
+                });
+            });
+
+            if (name === 'corpus') loadCorpus();
+            if (name === 'history') loadHistory();
+        }
+
+        function clearInput() {
+            docInput.value = '';
+            document.getElementById('word-count').textContent = '0 words';
+            document.getElementById('file-input').value = '';
+            document.getElementById('sentence-input').value = '';
+        }
+
+        async function checkSentence() {
+            const sentence = document.getElementById('sentence-input').value.trim();
+            
+            if (!sentence || sentence.length < 10) {
+                alert('Please enter at least a sentence to check');
+                return;
+            }
+            
+            const btn = document.querySelector('button[onclick="checkSentence()"]');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Checking…';
+            
+            try {
+                const response = await fetch('/check_sentence', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sentence: sentence })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Check failed');
+                }
+                
+                const result = await response.json();
+                
+                currentResult = result;
+                showResult(result);
+                switchTab('results');
+                
+            } catch(err) {
+                alert('Sentence check failed: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Check Sentence ↗';
+            }
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a file to upload');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const btn = document.querySelector('button[onclick="uploadFile()"]');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Uploading & Analyzing…';
+            
+            resetSteps();
+            const t0 = Date.now();
+            
+            try {
+                setStep(1, 'active');
+                await delay(300);
+                setStep(1, 'done', ms(Date.now()-t0));
+                setStep(2, 'active');
+                await delay(300);
+                setStep(2, 'done', ms(Date.now()-t0));
+                setStep(3, 'active');
+                
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Upload failed');
+                }
+                
+                const result = await response.json();
+                
+                setStep(3, 'done', ms(Date.now()-t0));
+                setStep(4, 'active');
+                await delay(200);
+                setStep(4, 'done', ms(Date.now()-t0));
+                
+                currentResult = result;
+                showResult(result);
+                switchTab('results');
+                
+            } catch(err) {
+                resetSteps();
+                alert('Upload failed: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Upload & Analyze ↗';
+            }
+        }
+
+        function setStep(n, state, time) {
+            const steps = document.querySelectorAll('.step-dot');
+            steps[n-1].className = 'step-dot ' + state;
+            steps[n-1].textContent = state === 'done' ? '✓' : n;
+            if (time) document.getElementById('t'+n).textContent = time;
+        }
+
+        function resetSteps() {
+            for(let i=1;i<=4;i++){
+                const dot = document.querySelectorAll('.step-dot')[i-1];
+                dot.className = 'step-dot pending';
+                dot.textContent = i;
+                document.getElementById('t'+i).textContent = '';
+            }
+        }
+
+        function getRiskClass(score) {
+            if (score >= 0.76) return 'risk-critical';
+            if (score >= 0.51) return 'risk-high';
+            if (score >= 0.26) return 'risk-moderate';
+            return 'risk-low';
+        }
+
+        function getRiskLabel(score) {
+            if (score >= 0.76) return 'Critical';
+            if (score >= 0.51) return 'High';
+            if (score >= 0.26) return 'Moderate';
+            return 'Low';
+        }
+
+        function getBarColor(score) {
+            if (score >= 0.76) return '#E24B4A';
+            if (score >= 0.51) return '#D85A30';
+            if (score >= 0.26) return '#EF9F27';
+            return '#639922';
+        }
+
+        async function runCheck() {
+            const text = docInput.value.trim();
+            if (!text || text.length < 20) {
+                alert('Please enter at least a sentence of text to analyze.');
+                return;
+            }
+            if (analyzing) return;
+            analyzing = true;
+
+            const btn = document.getElementById('check-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Analyzing…';
+
+            resetSteps();
+
+            const t0 = Date.now();
+
+            try {
+                setStep(1, 'active');
+                await delay(300);
+                setStep(1, 'done', ms(Date.now()-t0));
+                setStep(2, 'active');
+                await delay(300);
+                setStep(2, 'done', ms(Date.now()-t0));
+                setStep(3, 'active');
+
+                const response = await fetch('/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Analysis failed');
+                }
+
+                const result = await response.json();
+
+                setStep(3, 'done', ms(Date.now()-t0));
+                setStep(4, 'active');
+                await delay(200);
+                setStep(4, 'done', ms(Date.now()-t0));
+
+                currentResult = result;
+                showResult(result);
+                switchTab('results');
+
+            } catch(err) {
+                resetSteps();
+                alert('Analysis failed: ' + err.message);
+            } finally {
+                analyzing = false;
+                btn.disabled = false;
+                btn.innerHTML = 'Analyze ↗';
+            }
+        }
+
+        function showResult(r) {
+            document.getElementById('results-empty').style.display = 'none';
+            document.getElementById('results-content').style.display = 'block';
+
+            const pct = Math.round(r.ensemble_score * 100);
+            document.getElementById('res-score').textContent = pct + '%';
+            const risk = document.getElementById('res-risk');
+            risk.textContent = r.risk_level;
+            risk.className = 'risk-badge risk-' + r.risk_level.toLowerCase();
+            const bar = document.getElementById('res-bar');
+            bar.style.width = pct + '%';
+            bar.style.background = getBarColor(r.ensemble_score);
+
+            document.getElementById('m-cosine').textContent = Math.round(r.cosine_score * 100) + '%';
+            document.getElementById('m-jaccard').textContent = Math.round(r.jaccard_score * 100) + '%';
+            document.getElementById('m-matches').textContent = (r.flagged_sentences || []).length;
+
+            const tm = document.getElementById('top-matches');
+            if (!r.top_matches || r.top_matches.length === 0) {
+                tm.innerHTML = '<p style="font-size:13px;color:var(--color-text-secondary);">No corpus matches found.</p>';
+            } else {
+                tm.innerHTML = r.top_matches.map(m => `
+                    <div class="match-item">
+                        <div class="match-header">
+                            <div style="flex:1;">
+                                <div class="match-title">📄 ${m.title || m.doc_id}</div>
+                                <div style="font-size:11px;color:#64748b;margin-top:4px;">File from corpus</div>
+                            </div>
+                            <span class="match-score">${Math.round((m.score||0)*100)}% Match</span>
+                        </div>
+                        <div class="score-bar"><div class="score-bar-fill" style="width:${Math.round((m.score||0)*100)}%;background:${getBarColor(m.score||0)};"></div></div>
+                        <p style="font-size:12px;color:var(--color-text-secondary);margin-top:6px;">${m.note||''}</p>
+                    </div>`).join('');
+            }
+
+            const fs = document.getElementById('flagged-sentences');
+            if (!r.flagged_sentences || r.flagged_sentences.length === 0) {
+                fs.innerHTML = '<p style="font-size:13px;color:var(--color-text-secondary);">No matching parts found above threshold.</p>';
+            } else {
+                const isSentenceCheck = r.flagged_sentences.length > 0 && r.flagged_sentences[0].submitted === r.flagged_sentences[0].submitted;
+                if (isSentenceCheck && r.flagged_sentences.length === 1) {
+                    fs.innerHTML = `
+                        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 12px; margin-bottom: 12px;">
+                            <div style="font-size: 14px; font-weight: 500; color: #991b1b; margin-bottom: 8px;">🔍 Your Sentence:</div>
+                            <div style="font-size: 15px; font-style: italic; margin-bottom: 16px; color: #1e293b;">"${r.flagged_sentences[0].submitted}"</div>
+                        </div>
+                        <div style="font-size: 13px; font-weight: 500; margin-bottom: 12px;">📋 Found ${r.flagged_sentences.length} similar sentences in corpus:</div>
+                        ${r.flagged_sentences.map((s, idx) => `
+                            <div class="sentence-match" style="border-left: 4px solid #ef4444;">
+                                <div style="margin-bottom:8px;">
+                                    <div style="font-size:11px;font-weight:500;color:#64748b;margin-bottom:4px;">MATCH #${idx+1} - FILE: <strong>${s.source}</strong></div>
+                                    <div><span class="highlight">"${s.matched}"</span></div>
+                                </div>
+                                <div class="sub" style="margin-top:8px;">
+                                    <strong>${Math.round((s.similarity||0)*100)}% Similar</strong> - 
+                                    <span style="color:#ef4444;">⚠️ Potential plagiarism detected</span>
+                                </div>
+                            </div>`).join('')}
+                    `;
+                } else {
+                    fs.innerHTML = r.flagged_sentences.map((s, idx) => `
+                        <div class="sentence-match">
+                            <div style="margin-bottom:8px;">
+                                <div style="font-size:11px;font-weight:500;color:#64748b;margin-bottom:4px;">YOUR TEXT:</div>
+                                <div><span class="highlight-red">"${s.submitted}"</span></div>
+                            </div>
+                            <div style="border-top:1px solid #e2e8f0;padding-top:8px;">
+                                <div style="font-size:11px;font-weight:500;color:#64748b;margin-bottom:4px;">MATCHES FILE: <strong>${s.source}</strong></div>
+                                <div><span class="highlight">"${s.matched}"</span></div>
+                                <div class="sub" style="margin-top:8px;">
+                                    <strong>${Math.round((s.similarity||0)*100)}% Similar</strong> - 
+                                    <span style="color:#ef4444;">⚠️ Potential plagiarism detected</span>
+                                </div>
+                            </div>
+                        </div>`).join('');
+                }
+            }
+
+            document.getElementById('explanation').textContent = r.explanation || '';
+        }
+
+        async function addToCorpus() {
+            const text = document.getElementById('corpus-input').value.trim();
+            const title = document.getElementById('corpus-title').value.trim();
+            if (!text || text.length < 20) { alert('Please paste a document.'); return; }
+            if (!title) { alert('Please enter a title.'); return; }
+
+            try {
+                const response = await fetch('/corpus', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: title, text: text })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to add document');
+                }
+
+                document.getElementById('corpus-input').value = '';
+                document.getElementById('corpus-title').value = '';
+                loadCorpus();
+                alert('Document added to corpus successfully!');
+            } catch(err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        async function loadCorpus() {
+            try {
+                const response = await fetch('/corpus');
+                const corpus = await response.json();
+
+                document.getElementById('corpus-count').textContent = corpus.length;
+                const list = document.getElementById('corpus-list');
+                if (corpus.length === 0) {
+                    list.innerHTML = '<div class="empty-state" style="padding:1.5rem 0;"><p>No documents in corpus yet.</p></div>';
+                    return;
+                }
+                list.innerHTML = corpus.map((d, i) => `
+                    <div class="corpus-item">
+                        <div class="corpus-icon">📄</div>
+                        <div class="corpus-info">
+                            <div class="corpus-title">${d.title}</div>
+                            <div class="corpus-meta">${d.word_count} words · Added ${new Date(d.added_at).toLocaleDateString()}</div>
+                        </div>
+                        <button class="btn-secondary" style="font-size:12px;padding:4px 10px;" onclick="removeFromCorpus('${d.title}')">Remove</button>
+                    </div>`).join('');
+            } catch(err) {
+                console.error('Failed to load corpus:', err);
+            }
+        }
+
+        async function removeFromCorpus(title) {
+            if (!confirm(`Remove "${title}" from corpus?`)) return;
+
+            try {
+                const response = await fetch('/corpus', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: title })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to remove document');
+                }
+
+                loadCorpus();
+                alert('Document removed from corpus successfully!');
+            } catch(err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        async function loadHistory() {
+            try {
+                const response = await fetch('/history');
+                const history = await response.json();
+
+                const list = document.getElementById('history-list');
+                if (history.length === 0) {
+                    list.innerHTML = '<div class="empty-state" style="padding:1.5rem 0;"><p>No previous submissions.</p></div>';
+                    return;
+                }
+                list.innerHTML = history.map((h, i) => `
+                    <div class="history-item" onclick="viewHistory(${i})">
+                        <div class="history-left">
+                            <div class="history-text">${h.text}</div>
+                            <div class="history-date">${new Date(h.timestamp).toLocaleString()} ${h.type === 'sentence_check' ? '• Sentence Check' : ''}</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span class="risk-badge risk-${(h.risk_level||'Low').toLowerCase()}">${h.risk_level}</span>
+                            <span style="font-size:14px;font-weight:500;">${Math.round((h.ensemble_score||0)*100)}%</span>
+                        </div>
+                    </div>`).join('');
+            } catch(err) {
+                console.error('Failed to load history:', err);
+            }
+        }
+
+        function viewHistory(index) {
+            fetch('/history').then(r => r.json()).then(history => {
+                showResult(history[index]);
+                switchTab('results');
+            });
+        }
+
+        function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+        function ms(n) { return n + 'ms'; }
+
+        // Load initial data
+        loadCorpus();
+        loadHistory();
+    </script>
+</body>
+</html>

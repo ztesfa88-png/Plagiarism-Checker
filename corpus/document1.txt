@@ -1,0 +1,1 @@
+The Plagiarism Checker is designed to read a text sample and compare it against a repository of documents. It highlights text overlaps, similarity scores, and repeated passages so users can detect copied sections quickly.
