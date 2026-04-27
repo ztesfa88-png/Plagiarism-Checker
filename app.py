@@ -134,6 +134,42 @@ def check():
 
     return jsonify(result)
 
+@app.route("/corpus/upload", methods=["POST"])
+def corpus_upload():
+    """Upload a file directly into the corpus."""
+    if 'file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+
+    if not allowed_file(file.filename):
+        return jsonify({"error": "Only .txt, .pdf, and .docx files allowed"}), 400
+
+    try:
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+
+        text = extract_text_from_file(filepath)
+
+        try:
+            os.remove(filepath)
+        except:
+            pass
+
+        if not text or len(text) < 20:
+            return jsonify({"error": "File is empty or too small to add to corpus"}), 400
+
+        title = os.path.splitext(filename)[0]
+        detector.add_document(title, text)
+        return jsonify({"message": f'"{title}" added to corpus successfully.'})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/corpus", methods=["GET", "POST", "DELETE"])
 def corpus():
     if request.method == "GET":
