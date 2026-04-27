@@ -1,11 +1,9 @@
 import re
 import nltk
 from pathlib import Path
-from collections import Counter
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from datasketch import MinHash, MinHashLSH
-import numpy as np
 
 # Download required NLTK data
 try:
@@ -108,14 +106,17 @@ class PlagiarismDetector:
         path = self.corpus_dir / filename
         path.write_text(text, encoding='utf-8')
 
-        doc = Document(path, title)
+        doc = Document(path, title=title)
         self.documents.append(doc)
         self._rebuild_index()
 
     def remove_document(self, title: str):
         """Remove a document from the corpus."""
         normalized = title.replace(' ', '_')
-        self.documents = [d for d in self.documents if d.title != title and d.path.stem != normalized]
+        self.documents = [
+            d for d in self.documents
+            if d.title != title and d.title != normalized and d.path.stem != normalized
+        ]
 
         for path in self.corpus_dir.glob("*.txt"):
             if path.stem == normalized or path.stem == title:
