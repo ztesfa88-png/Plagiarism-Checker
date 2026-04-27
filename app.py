@@ -221,6 +221,15 @@ def check_sentence():
     if not sentence or len(sentence) < 10:
         return jsonify({"error": "Please enter at least a sentence to analyze."}), 400
 
+    if not detector.documents or detector.tfidf_vectorizer is None:
+        return jsonify({
+            "cosine_score": 0.0, "jaccard_score": 0.0, "ensemble_score": 0.0,
+            "risk_level": "Low", "top_matches": [], "flagged_sentences": [],
+            "preprocessed_tokens": len(preprocess_text(sentence).split()),
+            "shingles_count": len(create_shingles(sentence)),
+            "explanation": "No documents in corpus. Add reference documents before checking."
+        })
+
     # Find matches for this sentence
     matches = []
     for doc in detector.documents:
