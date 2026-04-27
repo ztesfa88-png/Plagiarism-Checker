@@ -24,8 +24,13 @@
         <div id="tab-check">
             <div class="card">
                 <div class="section-title">Upload or Paste Document</div>
-                
-                <!-- File Upload Section -->
+
+                <!-- Empty corpus warning -->
+                <div id="corpus-warning" style="display:none;margin-bottom:1rem;padding:10px 14px;background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;font-size:13px;color:#92400e;">
+                    ⚠️ <strong>Corpus is empty.</strong> "Check vs Corpus" and sentence checks will return 0% until you add reference documents.
+                    Use <strong>Compare Files</strong> to compare uploaded files against each other without a corpus,
+                    or go to the <a href="#" onclick="switchTab('corpus');return false;" style="color:#92400e;text-decoration:underline;">Corpus tab</a> to add documents.
+                </div>
                 <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f8fafc; border-radius: 6px; border: 2px dashed #cbd5e1;">
                     <div style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">📁 Upload Files</div>
                     <input type="file" id="file-input" accept=".txt,.pdf,.docx" multiple style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; margin-bottom: 8px;" />
@@ -33,7 +38,7 @@
                     <div id="file-list" style="margin-top: 8px;"></div>
                     <div style="display:flex;gap:8px;margin-top:8px;">
                         <button class="btn-primary" style="flex:1;" onclick="uploadFile()">Check vs Corpus ↗</button>
-                        <button class="btn-primary" style="flex:1;background:#4f46e5;" onclick="compareFiles()">Compare Files ↗</button>
+                        <button id="compare-btn" class="btn-primary" style="flex:1;background:#4f46e5;opacity:0.4;cursor:not-allowed;" onclick="compareFiles()" disabled>Compare Files ↗</button>
                     </div>
                     <div style="font-size:11px;color:#94a3b8;margin-top:6px;">
                         "Check vs Corpus" — checks each file against corpus &nbsp;|&nbsp; "Compare Files" — checks files against each other (works without corpus)
@@ -181,6 +186,10 @@
             document.getElementById('file-input').value = '';
             document.getElementById('file-list').innerHTML = '';
             document.getElementById('sentence-input').value = '';
+            const compareBtn = document.getElementById('compare-btn');
+            compareBtn.disabled = true;
+            compareBtn.style.opacity = '0.4';
+            compareBtn.style.cursor = 'not-allowed';
         }
 
         async function checkSentence() {
@@ -224,10 +233,30 @@
         const fileInput = document.getElementById('file-input');
         fileInput.addEventListener('change', () => {
             const list = document.getElementById('file-list');
-            if (fileInput.files.length === 0) { list.innerHTML = ''; return; }
+            const compareBtn = document.getElementById('compare-btn');
+            const count = fileInput.files.length;
+
+            if (count === 0) {
+                list.innerHTML = '';
+                compareBtn.disabled = true;
+                compareBtn.style.opacity = '0.4';
+                compareBtn.style.cursor = 'not-allowed';
+                return;
+            }
+
             list.innerHTML = Array.from(fileInput.files).map(f =>
                 `<div style="font-size:12px;color:#475569;padding:3px 0;border-bottom:1px solid #e2e8f0;">📄 ${f.name} <span style="color:#94a3b8;">(${(f.size/1024).toFixed(1)} KB)</span></div>`
             ).join('');
+
+            if (count >= 2) {
+                compareBtn.disabled = false;
+                compareBtn.style.opacity = '1';
+                compareBtn.style.cursor = 'pointer';
+            } else {
+                compareBtn.disabled = true;
+                compareBtn.style.opacity = '0.4';
+                compareBtn.style.cursor = 'not-allowed';
+            }
         });
 
         async function uploadFile() {
@@ -356,8 +385,8 @@
             const t0 = Date.now();
 
             try {
-                setStep(1, 'active'); await delay(300); setStep(1, 'done', ms(Date.now()-t0));
-                setStep(2, 'active'); await delay(300); setStep(2, 'done', ms(Date.now()-t0));
+                setStep(1, 'active'); setStep(1, 'done', ms(Date.now()-t0));
+                setStep(2, 'active'); setStep(2, 'done', ms(Date.now()-t0));
                 setStep(3, 'active');
 
                 const response = await fetch('/compare', { method: 'POST', body: formData });
@@ -368,7 +397,7 @@
                 const data = await response.json();
 
                 setStep(3, 'done', ms(Date.now()-t0));
-                setStep(4, 'active'); await delay(200); setStep(4, 'done', ms(Date.now()-t0));
+                setStep(4, 'active'); setStep(4, 'done', ms(Date.now()-t0));
 
                 showCompareResult(data);
                 switchTab('results');
@@ -710,6 +739,11 @@
                 const corpus = await response.json();
 
                 document.getElementById('corpus-count').textContent = corpus.length;
+
+                // Show/hide empty corpus warning on Check tab
+                const warning = document.getElementById('corpus-warning');
+                if (warning) warning.style.display = corpus.length === 0 ? 'block' : 'none';
+
                 const list = document.getElementById('corpus-list');
                 if (corpus.length === 0) {
                     list.innerHTML = '<div class="empty-state" style="padding:1.5rem 0;"><p>No documents in corpus yet.</p></div>';
