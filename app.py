@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, jsonify
 from plagiarism.detector import PlagiarismDetector, preprocess_text, create_shingles
 from sklearn.metrics.pairwise import cosine_similarity
-import json
 from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
@@ -91,10 +90,10 @@ def upload_file():
             "timestamp": datetime.now().isoformat()
         }
         history.insert(0, history_entry)
-        
+
         if len(history) > 50:
             history.pop()
-        
+
         # Clean up uploaded file
         try:
             os.remove(filepath)
@@ -133,6 +132,10 @@ def check():
         history.pop()
 
     return jsonify(result)
+
+@app.route("/history", methods=["GET"])
+def get_history():
+    return jsonify(history)
 
 @app.route("/corpus/upload", methods=["POST"])
 def corpus_upload():
@@ -288,10 +291,10 @@ def check_sentence():
         "type": "sentence_check"
     }
     history.insert(0, history_entry)
-    
+
     if len(history) > 50:
         history.pop()
-    
+
     return jsonify(result)
 
 if __name__ == "__main__":
