@@ -405,7 +405,7 @@
             if (!r.flagged_sentences || r.flagged_sentences.length === 0) {
                 fs.innerHTML = '<p style="font-size:13px;color:var(--color-text-secondary);">No matching parts found above threshold.</p>';
             } else {
-                const isSentenceCheck = r.flagged_sentences.length > 0 && r.flagged_sentences[0].submitted === r.flagged_sentences[0].submitted;
+                const isSentenceCheck = r.flagged_sentences.length > 0 && r.flagged_sentences[0].file_match === true;
                 if (isSentenceCheck && r.flagged_sentences.length === 1) {
                     fs.innerHTML = `
                         <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 12px; margin-bottom: 12px;">
@@ -587,9 +587,8 @@
         function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
         function ms(n) { return n + 'ms'; }
 
-        // Load initial data
+        // Load initial corpus count
         loadCorpus();
-        loadHistory();
     </script>
 </body>
 </html>
