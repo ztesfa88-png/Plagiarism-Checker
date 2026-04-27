@@ -27,10 +27,17 @@
                 
                 <!-- File Upload Section -->
                 <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f8fafc; border-radius: 6px; border: 2px dashed #cbd5e1;">
-                    <div style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">📁 Upload File</div>
-                    <input type="file" id="file-input" accept=".txt,.pdf,.docx" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; margin-bottom: 8px;" />
-                    <div style="font-size: 12px; color: #64748b;">Supported: .txt, .pdf, .docx (Max 16MB)</div>
-                    <button class="btn-primary" style="width: 100%; margin-top: 8px;" onclick="uploadFile()">Upload & Analyze ↗</button>
+                    <div style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">📁 Upload Files</div>
+                    <input type="file" id="file-input" accept=".txt,.pdf,.docx" multiple style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; margin-bottom: 8px;" />
+                    <div style="font-size: 12px; color: #64748b;">Supported: .txt, .pdf, .docx (Max 16MB each) · Select multiple files</div>
+                    <div id="file-list" style="margin-top: 8px;"></div>
+                    <div style="display:flex;gap:8px;margin-top:8px;">
+                        <button class="btn-primary" style="flex:1;" onclick="uploadFile()">Check vs Corpus ↗</button>
+                        <button class="btn-primary" style="flex:1;background:#4f46e5;" onclick="compareFiles()">Compare Files ↗</button>
+                    </div>
+                    <div style="font-size:11px;color:#94a3b8;margin-top:6px;">
+                        "Check vs Corpus" — checks each file against corpus &nbsp;|&nbsp; "Compare Files" — checks files against each other (works without corpus)
+                    </div>
                 </div>
 
                 <!-- Or Separator -->
@@ -172,6 +179,7 @@
             docInput.value = '';
             document.getElementById('word-count').textContent = '0 words';
             document.getElementById('file-input').value = '';
+            document.getElementById('file-list').innerHTML = '';
             document.getElementById('sentence-input').value = '';
         }
 
@@ -213,25 +221,32 @@
             }
         }
 
+        const fileInput = document.getElementById('file-input');
+        fileInput.addEventListener('change', () => {
+            const list = document.getElementById('file-list');
+            if (fileInput.files.length === 0) { list.innerHTML = ''; return; }
+            list.innerHTML = Array.from(fileInput.files).map(f =>
+                `<div style="font-size:12px;color:#475569;padding:3px 0;border-bottom:1px solid #e2e8f0;">📄 ${f.name} <span style="color:#94a3b8;">(${(f.size/1024).toFixed(1)} KB)</span></div>`
+            ).join('');
+        });
+
         async function uploadFile() {
-            const fileInput = document.getElementById('file-input');
-            const file = fileInput.files[0];
-            
-            if (!file) {
-                alert('Please select a file to upload');
+            const files = fileInput.files;
+            if (!files || files.length === 0) {
+                alert('Please select at least one file to upload');
                 return;
             }
-            
+
             const formData = new FormData();
-            formData.append('file', file);
-            
+            for (const file of files) formData.append('file', file);
+
             const btn = document.querySelector('button[onclick="uploadFile()"]');
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner"></span> Uploading & Analyzing…';
-            
+
             resetSteps();
             const t0 = Date.now();
-            
+
             try {
                 setStep(1, 'active');
                 await delay(300);
@@ -240,28 +255,38 @@
                 await delay(300);
                 setStep(2, 'done', ms(Date.now()-t0));
                 setStep(3, 'active');
-                
+
                 const response = await fetch('/upload', {
                     method: 'POST',
                     body: formData
                 });
-                
+
                 if (!response.ok) {
                     const error = await response.json();
                     throw new Error(error.error || 'Upload failed');
                 }
-                
-                const result = await response.json();
-                
+
+                const data = await response.json();
+
                 setStep(3, 'done', ms(Date.now()-t0));
                 setStep(4, 'active');
                 await delay(200);
                 setStep(4, 'done', ms(Date.now()-t0));
-                
-                currentResult = result;
-                showResult(result);
+
+                if (data.results && data.results.length > 1) {
+                    showMultiResult(data);
+                } else if (data.results && data.results.length === 1) {
+                    currentResult = data.results[0];
+                    showResult(data.results[0]);
+                }
+
+                if (data.errors && data.errors.length > 0) {
+                    const errMsg = data.errors.map(e => `${e.filename}: ${e.error}`).join('\n');
+                    alert('Some files had errors:\n' + errMsg);
+                }
+
                 switchTab('results');
-                
+
             } catch(err) {
                 resetSteps();
                 alert('Upload failed: ' + err.message);
@@ -269,6 +294,181 @@
                 btn.disabled = false;
                 btn.innerHTML = 'Upload & Analyze ↗';
             }
+        }
+
+        function showMultiResult(data) {
+            document.getElementById('results-empty').style.display = 'none';
+            document.getElementById('results-content').style.display = 'block';
+
+            const results = data.results;
+            const avgScore = results.reduce((s, r) => s + r.ensemble_score, 0) / results.length;
+            const maxScore = Math.max(...results.map(r => r.ensemble_score));
+
+            document.getElementById('res-score').textContent = Math.round(avgScore * 100) + '%';
+            const risk = document.getElementById('res-risk');
+            const topRisk = results.reduce((a, b) => b.ensemble_score > a.ensemble_score ? b : a).risk_level;
+            risk.textContent = topRisk + ' (highest)';
+            risk.className = 'risk-badge risk-' + topRisk.toLowerCase();
+            const bar = document.getElementById('res-bar');
+            bar.style.width = Math.round(maxScore * 100) + '%';
+            bar.style.background = getBarColor(maxScore);
+
+            document.getElementById('m-cosine').textContent = Math.round((results.reduce((s,r)=>s+r.cosine_score,0)/results.length)*100)+'%';
+            document.getElementById('m-jaccard').textContent = Math.round((results.reduce((s,r)=>s+r.jaccard_score,0)/results.length)*100)+'%';
+            document.getElementById('m-matches').textContent = results.reduce((s,r)=>s+(r.flagged_sentences||[]).length,0);
+
+            // Per-file breakdown
+            const tm = document.getElementById('top-matches');
+            tm.innerHTML = `<div style="font-size:12px;color:#64748b;margin-bottom:10px;">${results.length} files analyzed</div>` +
+                results.map(r => `
+                    <div class="match-item" style="cursor:pointer;" onclick='showResult(${JSON.stringify(r)})'>
+                        <div class="match-header">
+                            <div style="flex:1;">
+                                <div class="match-title">📄 ${r.filename}</div>
+                                <div style="font-size:11px;color:#64748b;margin-top:2px;">Click to view full details · ${(r.flagged_sentences||[]).length} flagged sentences</div>
+                            </div>
+                            <span class="risk-badge risk-${r.risk_level.toLowerCase()}">${r.risk_level}</span>
+                            <span class="match-score" style="margin-left:8px;">${Math.round(r.ensemble_score*100)}%</span>
+                        </div>
+                        <div class="score-bar"><div class="score-bar-fill" style="width:${Math.round(r.ensemble_score*100)}%;background:${getBarColor(r.ensemble_score)};"></div></div>
+                    </div>`).join('');
+
+            document.getElementById('flagged-sentences').innerHTML = '<p style="font-size:13px;color:#64748b;">Click a file above to see its flagged sentences.</p>';
+            const topFile = results.reduce((a, b) => b.ensemble_score > a.ensemble_score ? b : a);
+            document.getElementById('explanation').textContent = `Analyzed ${results.length} files. Average similarity: ${Math.round(avgScore*100)}%. Highest: ${topFile.filename} at ${Math.round(maxScore*100)}%.`;
+        }
+
+        async function compareFiles() {
+            const files = fileInput.files;
+            if (!files || files.length < 2) {
+                alert('Please select at least 2 files to compare.');
+                return;
+            }
+
+            const formData = new FormData();
+            for (const file of files) formData.append('file', file);
+
+            const btn = document.querySelector('button[onclick="compareFiles()"]');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Comparing…';
+
+            resetSteps();
+            const t0 = Date.now();
+
+            try {
+                setStep(1, 'active'); await delay(300); setStep(1, 'done', ms(Date.now()-t0));
+                setStep(2, 'active'); await delay(300); setStep(2, 'done', ms(Date.now()-t0));
+                setStep(3, 'active');
+
+                const response = await fetch('/compare', { method: 'POST', body: formData });
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Compare failed');
+                }
+                const data = await response.json();
+
+                setStep(3, 'done', ms(Date.now()-t0));
+                setStep(4, 'active'); await delay(200); setStep(4, 'done', ms(Date.now()-t0));
+
+                showCompareResult(data);
+                switchTab('results');
+
+                if (data.errors && data.errors.length > 0) {
+                    alert('Some files had errors:\n' + data.errors.map(e => `${e.filename}: ${e.error}`).join('\n'));
+                }
+            } catch(err) {
+                resetSteps();
+                alert('Compare failed: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Compare Files ↗';
+            }
+        }
+
+        function showCompareResult(data) {
+            document.getElementById('results-empty').style.display = 'none';
+            document.getElementById('results-content').style.display = 'block';
+
+            const pairs = data.pairs;
+            const maxPair = pairs.reduce((a, b) => b.ensemble_score > a.ensemble_score ? b : a);
+            const avgScore = pairs.reduce((s, p) => s + p.ensemble_score, 0) / pairs.length;
+
+            document.getElementById('res-score').textContent = Math.round(maxPair.ensemble_score * 100) + '%';
+            const risk = document.getElementById('res-risk');
+            risk.textContent = maxPair.risk_level + ' (highest pair)';
+            risk.className = 'risk-badge risk-' + maxPair.risk_level.toLowerCase();
+            const bar = document.getElementById('res-bar');
+            bar.style.width = Math.round(maxPair.ensemble_score * 100) + '%';
+            bar.style.background = getBarColor(maxPair.ensemble_score);
+
+            document.getElementById('m-cosine').textContent = Math.round(maxPair.cosine_score * 100) + '%';
+            document.getElementById('m-jaccard').textContent = Math.round(maxPair.jaccard_score * 100) + '%';
+            document.getElementById('m-matches').textContent = pairs.reduce((s, p) => s + p.flagged_sentences.length, 0);
+
+            const tm = document.getElementById('top-matches');
+            tm.innerHTML = `
+                <div style="font-size:12px;color:#64748b;margin-bottom:10px;">
+                    ${data.file_count} files · ${pairs.length} pair${pairs.length > 1 ? 's' : ''} compared
+                    ${data.corpus_results && data.corpus_results.length ? ' · also checked against corpus' : ' · <em>no corpus — file-to-file only</em>'}
+                </div>` +
+                pairs.map(p => `
+                    <div class="match-item" style="cursor:pointer;" onclick='showPairDetail(${JSON.stringify(p)})'>
+                        <div class="match-header">
+                            <div style="flex:1;">
+                                <div class="match-title">📄 ${p.file_a} <span style="color:#94a3b8;font-weight:400;">vs</span> 📄 ${p.file_b}</div>
+                                <div style="font-size:11px;color:#64748b;margin-top:2px;">
+                                    Cosine: ${Math.round(p.cosine_score*100)}% · Jaccard: ${Math.round(p.jaccard_score*100)}% · ${p.flagged_sentences.length} flagged sentences · Click to expand
+                                </div>
+                            </div>
+                            <span class="risk-badge risk-${p.risk_level.toLowerCase()}" style="margin-right:8px;">${p.risk_level}</span>
+                            <span class="match-score">${Math.round(p.ensemble_score*100)}%</span>
+                        </div>
+                        <div class="score-bar"><div class="score-bar-fill" style="width:${Math.round(p.ensemble_score*100)}%;background:${getBarColor(p.ensemble_score)};"></div></div>
+                    </div>`).join('') +
+                (data.corpus_results && data.corpus_results.length ? `
+                    <div style="margin-top:16px;font-size:12px;font-weight:500;color:#475569;margin-bottom:8px;">📚 Corpus comparison</div>` +
+                    data.corpus_results.map(r => `
+                        <div class="match-item">
+                            <div class="match-header">
+                                <div style="flex:1;"><div class="match-title">📄 ${r.filename} vs corpus</div></div>
+                                <span class="risk-badge risk-${r.risk_level.toLowerCase()}" style="margin-right:8px;">${r.risk_level}</span>
+                                <span class="match-score">${Math.round(r.ensemble_score*100)}%</span>
+                            </div>
+                            <div class="score-bar"><div class="score-bar-fill" style="width:${Math.round(r.ensemble_score*100)}%;background:${getBarColor(r.ensemble_score)};"></div></div>
+                        </div>`).join('') : '');
+
+            document.getElementById('flagged-sentences').innerHTML =
+                '<p style="font-size:13px;color:#64748b;">Click a pair above to see its flagged sentences.</p>';
+            document.getElementById('explanation').textContent =
+                `Compared ${data.file_count} files across ${pairs.length} pair(s). Highest similarity: ${maxPair.file_a} vs ${maxPair.file_b} at ${Math.round(maxPair.ensemble_score*100)}% (${maxPair.risk_level}). Average: ${Math.round(avgScore*100)}%.`;
+        }
+
+        function showPairDetail(pair) {
+            const fs = document.getElementById('flagged-sentences');
+            if (!pair.flagged_sentences || pair.flagged_sentences.length === 0) {
+                fs.innerHTML = `<p style="font-size:13px;color:#64748b;">No sentences above threshold between <strong>${pair.file_a}</strong> and <strong>${pair.file_b}</strong>.</p>`;
+            } else {
+                fs.innerHTML = `
+                    <div style="font-size:12px;font-weight:500;color:#475569;margin-bottom:10px;">
+                        Flagged sentences: <strong>${pair.file_a}</strong> vs <strong>${pair.file_b}</strong>
+                    </div>` +
+                    pair.flagged_sentences.map(s => `
+                        <div class="sentence-match">
+                            <div style="margin-bottom:8px;">
+                                <div style="font-size:11px;font-weight:500;color:#64748b;margin-bottom:4px;">FROM ${pair.file_a}:</div>
+                                <div><span class="highlight-red">"${s.submitted}"</span></div>
+                            </div>
+                            <div style="border-top:1px solid #e2e8f0;padding-top:8px;">
+                                <div style="font-size:11px;font-weight:500;color:#64748b;margin-bottom:4px;">MATCHES IN ${pair.file_b}:</div>
+                                <div><span class="highlight">"${s.matched}"</span></div>
+                                <div class="sub" style="margin-top:8px;">
+                                    <strong>${Math.round((s.similarity||0)*100)}% Similar</strong> —
+                                    <span style="color:#ef4444;">⚠️ Potential plagiarism</span>
+                                </div>
+                            </div>
+                        </div>`).join('');
+            }
+            document.getElementById('flagged-sentences').scrollIntoView({ behavior: 'smooth' });
         }
 
         function setStep(n, state, time) {

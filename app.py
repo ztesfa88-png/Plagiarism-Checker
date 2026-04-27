@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, jsonify
 from plagiarism.detector import PlagiarismDetector, preprocess_text, create_shingles
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from datasketch import MinHash
 from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
@@ -57,53 +59,58 @@ def extract_text_from_file(filepath):
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
-    """Handle file upload and plagiarism check"""
-    if 'file' not in request.files:
-        return jsonify({"error": "No file provided"}), 400
-    
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No file selected"}), 400
-    
-    if not allowed_file(file.filename):
-        return jsonify({"error": "Only .txt, .pdf, and .docx files allowed"}), 400
-    
-    try:
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
-        
-        # Extract text from file
-        text = extract_text_from_file(filepath)
-        
-        if not text or len(text) < 20:
-            return jsonify({"error": "File is empty or too small"}), 400
-        
-        # Run plagiarism check
-        result = detector.check_text(text)
-        
-        # Add to history with file info
-        history_entry = {
-            **result,
-            "filename": filename,
-            "text": text[:120] + "..." if len(text) > 120 else text,
-            "timestamp": datetime.now().isoformat()
-        }
-        history.insert(0, history_entry)
+    """Handle multiple file uploads and plagiarism check"""
+    files = request.files.getlist('file')
+    if not files or all(f.filename == '' for f in files):
+        return jsonify({"error": "No files provided"}), 400
 
-        if len(history) > 50:
-            history.pop()
+    results = []
+    errors = []
 
-        # Clean up uploaded file
+    for file in files:
+        if file.filename == '':
+            continue
+        if not allowed_file(file.filename):
+            errors.append({"filename": file.filename, "error": "Only .txt, .pdf, and .docx files allowed"})
+            continue
+
         try:
-            os.remove(filepath)
-        except:
-            pass
-        
-        return jsonify(result)
-    
-    except Exception as e:
-        return jsonify({"error": f"Error processing file: {str(e)}"}), 500
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+
+            text = extract_text_from_file(filepath)
+
+            try:
+                os.remove(filepath)
+            except:
+                pass
+
+            if not text or len(text) < 20:
+                errors.append({"filename": filename, "error": "File is empty or too small"})
+                continue
+
+            result = detector.check_text(text)
+
+            history_entry = {
+                **result,
+                "filename": filename,
+                "text": text[:120] + "..." if len(text) > 120 else text,
+                "timestamp": datetime.now().isoformat()
+            }
+            history.insert(0, history_entry)
+            if len(history) > 50:
+                history.pop()
+
+            results.append({"filename": filename, **result})
+
+        except Exception as e:
+            errors.append({"filename": file.filename, "error": str(e)})
+
+    if not results and errors:
+        return jsonify({"error": errors[0]["error"]}), 400
+
+    return jsonify({"results": results, "errors": errors})
 
 @app.route("/")
 def index():
@@ -305,6 +312,125 @@ def check_sentence():
         history.pop()
 
     return jsonify(result)
+
+@app.route("/compare", methods=["POST"])
+def compare_files():
+    """Compare multiple uploaded files against each other (no corpus needed)."""
+    files = request.files.getlist('file')
+    valid = [f for f in files if f.filename != '' and allowed_file(f.filename)]
+
+    if len(valid) < 2:
+        return jsonify({"error": "Please upload at least 2 files to compare."}), 400
+
+    # Extract texts
+    docs = []
+    errors = []
+    for file in valid:
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        text = extract_text_from_file(filepath)
+        try:
+            os.remove(filepath)
+        except:
+            pass
+        if not text or len(text) < 20:
+            errors.append({"filename": filename, "error": "File is empty or too small"})
+            continue
+        docs.append({"filename": filename, "text": text})
+
+    if len(docs) < 2:
+        return jsonify({"error": "Need at least 2 readable files to compare.", "errors": errors}), 400
+
+    # Build a temporary TF-IDF vectorizer over all docs
+    preprocessed = [preprocess_text(d["text"]) for d in docs]
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(preprocessed)
+
+    # Build MinHash per doc
+    minhashes = []
+    for d in docs:
+        shingles = create_shingles(d["text"])
+        m = MinHash(num_perm=128)
+        for s in shingles:
+            m.update(s.encode("utf8"))
+        minhashes.append(m)
+
+    # Pairwise comparison
+    pairs = []
+    n = len(docs)
+    for i in range(n):
+        for j in range(i + 1, n):
+            cosine = float(cosine_similarity(tfidf_matrix[i:i+1], tfidf_matrix[j:j+1])[0][0])
+            jaccard = float(minhashes[i].jaccard(minhashes[j]))
+            ensemble = round(0.6 * cosine + 0.4 * jaccard, 3)
+
+            if ensemble >= 0.76:
+                risk = "Critical"
+            elif ensemble >= 0.51:
+                risk = "High"
+            elif ensemble >= 0.26:
+                risk = "Moderate"
+            else:
+                risk = "Low"
+
+            # Flagged sentence pairs
+            flagged = []
+            try:
+                from nltk.tokenize import sent_tokenize
+                sents_i = sent_tokenize(docs[i]["text"])
+                sents_j = sent_tokenize(docs[j]["text"])
+            except:
+                sents_i = [s.strip() for s in docs[i]["text"].split('.') if s.strip()]
+                sents_j = [s.strip() for s in docs[j]["text"].split('.') if s.strip()]
+
+            for si in sents_i:
+                pi = preprocess_text(si)
+                if len(pi.split()) < 3:
+                    continue
+                for sj in sents_j:
+                    pj = preprocess_text(sj)
+                    if len(pj.split()) < 3:
+                        continue
+                    try:
+                        vi = vectorizer.transform([pi])
+                        vj = vectorizer.transform([pj])
+                        sim = float(cosine_similarity(vi, vj)[0][0])
+                        if sim >= 0.70:
+                            flagged.append({
+                                "submitted": si.strip(),
+                                "matched": sj.strip(),
+                                "source": docs[j]["filename"],
+                                "similarity": round(sim, 3)
+                            })
+                            break
+                    except:
+                        continue
+
+            pairs.append({
+                "file_a": docs[i]["filename"],
+                "file_b": docs[j]["filename"],
+                "cosine_score": round(cosine, 3),
+                "jaccard_score": round(jaccard, 3),
+                "ensemble_score": ensemble,
+                "risk_level": risk,
+                "flagged_sentences": flagged
+            })
+
+    # Also run each file against corpus if available
+    corpus_results = []
+    if detector.documents:
+        for d in docs:
+            r = detector.check_text(d["text"])
+            corpus_results.append({"filename": d["filename"], **r})
+
+    return jsonify({
+        "pairs": pairs,
+        "corpus_results": corpus_results,
+        "errors": errors,
+        "file_count": len(docs)
+    })
+
 
 if __name__ == "__main__":
     app.run(debug=True)
