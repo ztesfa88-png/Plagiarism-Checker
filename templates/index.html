@@ -115,6 +115,15 @@
 
         <div id="tab-corpus" style="display:none">
             <div class="card">
+                <div class="section-title">Upload file to corpus</div>
+                <div style="padding: 1rem; background: #f8fafc; border-radius: 6px; border: 2px dashed #cbd5e1;">
+                    <div style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">📁 Upload File</div>
+                    <input type="file" id="corpus-file-input" accept=".txt,.pdf,.docx" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; margin-bottom: 8px;" />
+                    <div style="font-size: 12px; color: #64748b; margin-bottom: 8px;">Supported: .txt, .pdf, .docx (Max 16MB)</div>
+                    <button class="btn-primary" style="width: 100%;" onclick="uploadToCorpus()">Upload to Corpus ↗</button>
+                </div>
+            </div>
+            <div class="card">
                 <div class="section-title">Add to corpus</div>
                 <textarea class="input-area" id="corpus-input" placeholder="Paste a reference academic document to add to the corpus database..." style="min-height:120px;"></textarea>
                 <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
@@ -436,6 +445,36 @@
             }
 
             document.getElementById('explanation').textContent = r.explanation || '';
+        }
+
+        async function uploadToCorpus() {
+            const fileInput = document.getElementById('corpus-file-input');
+            const file = fileInput.files[0];
+            if (!file) { alert('Please select a file to upload.'); return; }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const btn = document.querySelector('button[onclick="uploadToCorpus()"]');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Uploading…';
+
+            try {
+                const response = await fetch('/corpus/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Upload failed');
+                fileInput.value = '';
+                loadCorpus();
+                alert(data.message);
+            } catch(err) {
+                alert('Error: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Upload to Corpus ↗';
+            }
         }
 
         async function addToCorpus() {
