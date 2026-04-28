@@ -1,18 +1,14 @@
 <div align="center">
 
-<br/>
-
 ---
 
 ## <img width="109" height="96" alt="image" src="https://github.com/user-attachments/assets/c7239e10-61c0-466f-8f6e-5ab695f72cbd" />
 
-
 **College of Computing and Informatics**
 **Department of Software Engineering**
-
 *Fundamentals of Artificial Intelligence*
+*SEng7413 · 3rd Year*
 
-**SEng7413 · 3rd Year**
 Academic Year and Semester: **2018, Semester 2**
 
 <br/>
@@ -22,7 +18,7 @@ Academic Year and Semester: **2018, Semester 2**
 | # | Name | ID |
 |:--:|:--|:--|
 | 1 | Zelalem Tesfa | NSR/0868/16 |
-| 2 | Samir Girle | NSR/0673/16 |
+| 2 | Samir Gebi | NSR/0673/16 |
 | 3 | Temesgen Teka | NSR/1007/16 |
 | 4 | Ysmalem Temesgen | NSR/0843/16 |
 | 5 | Yohannes Girma | NSR/0850/16 |
@@ -36,24 +32,19 @@ Academic Year and Semester: **2018, Semester 2**
 
 ---
 
-<br/>
-
-
 # Plagiarism Detection System
 
 ### An intelligent, ML-powered plagiarism checker built with Flask
 
 ![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Flask](https://img.shields.io/badge/Flask-2.0%2B-000000?style=for-the-badge&logo=flask&logoColor=white)
-![scikit-learn](https://img.shields.io/badge/scikit--learn-1.0%2B-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)
-![NLTK](https://img.shields.io/badge/NLTK-Enabled-4B8BBE?style=for-the-badge)
+![Flask](https://img.shields.io/badge/Flask-3.1%2B-000000?style=for-the-badge&logo=flask&logoColor=white)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-1.8%2B-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)
+![NLTK](https://img.shields.io/badge/NLTK-3.9%2B-4B8BBE?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-22C55E?style=for-the-badge)
 
 <br/>
 
 > 🎓 Developed by **Group 6 · Wolkite University**
-
-<br/>
 
 </div>
 
@@ -61,7 +52,7 @@ Academic Year and Semester: **2018, Semester 2**
 
 ## 📌 Overview
 
-The **Plagiarism Detection System** is a web-based application that analyzes submitted text or uploaded documents and compares them against a local corpus of reference documents.
+The **Plagiarism Detection System** is a web-based application that analyzes submitted text or uploaded documents and compares them against a local corpus of reference documents **or directly against each other**.
 
 It uses a **hybrid unsupervised machine learning approach** — combining **TF-IDF Cosine Similarity** and **MinHash Jaccard Similarity** — to produce a reliable ensemble plagiarism score with sentence-level match highlighting.
 
@@ -73,11 +64,13 @@ It uses a **hybrid unsupervised machine learning approach** — combining **TF-I
 |:--|:--|
 | 📄 **Document Analysis** | Paste full text for document-level plagiarism scanning |
 | 🔍 **Sentence Check** | Instantly check a single sentence against the entire corpus |
-| 📁 **File Upload** | Upload `.txt`, `.pdf`, or `.docx` files for analysis |
+| 📁 **Multiple File Upload** | Upload multiple `.txt`, `.pdf`, or `.docx` files at once |
+| 🔀 **File-to-File Comparison** | Compare uploaded files against each other — works without a corpus |
 | 🗂️ **Corpus Management** | Add, upload, or remove reference documents via the UI |
 | 🧠 **Ensemble Scoring** | Combined TF-IDF + MinHash score for higher accuracy |
 | 🚦 **Risk Classification** | Automatic risk level: `Low` / `Moderate` / `High` / `Critical` |
 | 📊 **Session History** | Track all checks performed during the current session |
+| ⚠️ **Empty Corpus Warning** | Visual alert when no reference documents are loaded |
 
 ---
 
@@ -103,6 +96,16 @@ Ensemble Score = (0.6 × Cosine Similarity) + (0.4 × Jaccard Similarity)
 | `0.51 – 0.75` | 🟠 **High** | Significant similarity detected |
 | `≥ 0.76` | 🔴 **Critical** | Content is likely plagiarized |
 
+### 🔬 Text Preprocessing Pipeline
+
+Each document goes through this pipeline before comparison:
+
+1. **Lowercase** — normalize case
+2. **Tokenization** — extract words using regex `\b\w+\b`
+3. **Stopword Removal** — remove common English words (the, is, at, etc.)
+4. **Lemmatization** — reduce words to base form
+5. **Shingling** — create overlapping 3-word sequences for MinHash
+
 ---
 
 ## 🗂️ Project Structure
@@ -123,15 +126,15 @@ PlagiarismChecker/
 │   └── style.css             # Application styling
 │
 ├── corpus/                   # Reference documents (.txt files)
-│   ├── document1.txt
-│   └── document2.txt
+│   ├── document1.txt         # Seed: plagiarism checker description
+│   └── document2.txt         # Seed: system usage description
 │
 ├── uploads/                  # Temporary upload directory (auto-created)
 │
 ├── tests/
 │   └── test_detector.py      # Unit tests for the detection engine
 │
-├── requirements.txt
+├── requirements.txt          # Python dependencies (pinned versions)
 ├── .gitignore
 └── README.md
 ```
@@ -143,9 +146,10 @@ PlagiarismChecker/
 | Method | Endpoint | Description |
 |:--:|:--|:--|
 | `GET` | `/` | Serves the web interface |
-| `POST` | `/check` | Analyze pasted text for plagiarism |
+| `POST` | `/check` | Analyze pasted text against corpus |
 | `POST` | `/check_sentence` | Check a single sentence against the corpus |
-| `POST` | `/upload` | Upload and analyze a file for plagiarism |
+| `POST` | `/upload` | Upload multiple files and check against corpus |
+| `POST` | `/compare` | Compare multiple files against each other (no corpus needed) |
 | `GET` | `/history` | Retrieve in-memory submission history |
 | `GET` | `/corpus` | List all corpus reference documents |
 | `POST` | `/corpus` | Add a document via JSON `{ title, text }` |
@@ -164,8 +168,8 @@ PlagiarismChecker/
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/plagiarism-checker.git
-cd plagiarism-checker
+git clone https://github.com/ztesfa88-png/Plagiarism-Checker.git
+cd Plagiarism-Checker
 ```
 
 ### 2. Create a Virtual Environment
@@ -183,8 +187,14 @@ source venv/bin/activate
 ### 3. Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+# Core only (no PDF/DOCX support)
+pip install Flask>=3.1.3 scikit-learn>=1.8.0 datasketch>=1.10.0 nltk>=3.9.4 werkzeug>=3.1.8
+
+# Full install including PDF and DOCX support
+pip install Flask>=3.1.3 scikit-learn>=1.8.0 datasketch>=1.10.0 nltk>=3.9.4 werkzeug>=3.1.8 PyPDF2>=3.0.1 python-docx>=1.2.0
 ```
+
+> `PyPDF2` and `python-docx` are **optional**. Without them the app still works, but PDF/DOCX uploads will return an error message.
 
 ### 4. Run the Application
 
@@ -203,24 +213,61 @@ http://127.0.0.1:5000
 ## 🖥️ Usage Guide
 
 ### 📄 Check Document Tab
-- **Upload File** — Select a `.txt`, `.pdf`, or `.docx` file and click **Upload & Analyze**
-- **Paste Text** — Paste any block of text and click **Analyze**
-- **Quick Sentence Check** — Paste a single sentence and click **Check Sentence**
+
+#### Upload Files
+- Select one or more `.txt`, `.pdf`, or `.docx` files (max 16MB each)
+- **"Check vs Corpus"** — checks each file against the corpus
+- **"Compare Files"** — compares files against each other (no corpus needed, enabled only when 2+ files are selected)
+
+#### Paste Text
+- Paste any block of text (min 20 characters) and click **Analyze**
+
+#### Quick Sentence Check
+- Paste a single sentence in the yellow box and click **Check Sentence**
+- Requires corpus documents to be present
+
+#### Empty Corpus Warning
+- A yellow banner appears automatically when the corpus is empty
+- Directs you to the Corpus tab or suggests using Compare Files
 
 ### 📊 Results Tab
-- View the ensemble score and risk level
-- Inspect per-document match scores with cosine and Jaccard breakdown
-- Review flagged sentence pairs with similarity percentages and source attribution
+
+- View the **ensemble score** and **risk level** with a visual progress bar
+- Inspect **per-document match scores** with cosine and Jaccard breakdown
+- Review **flagged sentence pairs** with similarity percentages and source attribution
+- For multi-file uploads, click any file card to drill into its full results
+- For file-to-file comparisons, click any pair card to expand flagged sentences
 
 ### 🗂️ Corpus Tab
-- **Upload File** — Add a `.txt`, `.pdf`, or `.docx` directly as a reference document
-- **Paste Text** — Manually add a document with a custom title
-- View word counts and dates for all corpus documents
-- Remove any document from the corpus at any time
+
+#### What to Add to the Corpus
+
+The corpus should contain **reference documents** that represent content you want to check against:
+
+- Academic papers or essays from your institution
+- Previously submitted student work (with permission)
+- Published articles or textbooks in your subject area
+- Any authoritative text relevant to your domain
+
+**Best practices:**
+- Add at least **10–20 documents** for reliable detection
+- Each document should be **at least 100 words**
+- Use **diverse sources** to build a broad vocabulary
+- Regularly update the corpus with new submissions
+
+#### Adding Documents
+- **Upload File** — add a `.txt`, `.pdf`, or `.docx` as a reference document
+- **Paste Text** — manually add content with a custom title
+
+#### Managing Documents
+- View word counts and upload dates for all corpus documents
+- Remove any document at any time — the index rebuilds automatically
 
 ### 🕘 History Tab
+
 - Browse all checks performed in the current session
 - Click any entry to reload its full results in the Results tab
+- History resets when the server restarts
 
 ---
 
@@ -230,20 +277,29 @@ http://127.0.0.1:5000
 pytest tests/
 ```
 
+Tests cover:
+- Text preprocessing (stopword removal, lemmatization)
+- Shingle creation
+- Empty corpus behavior
+- Detection with corpus documents
+- Add/remove document operations
+- Risk level classification
+
 ---
 
 ## 📦 Dependencies
 
-| Package | Purpose |
-|:--|:--|
-| `Flask` | Web framework and routing |
-| `scikit-learn` | TF-IDF vectorization and cosine similarity |
-| `datasketch` | MinHash signatures and LSH indexing |
-| `nltk` | Tokenization, stopword removal, lemmatization |
-| `PyPDF2` | PDF text extraction |
-| `python-docx` | DOCX text extraction |
+| Package | Version | Purpose |
+|:--|:--|:--|
+| `Flask` | ≥3.1.3 | Web framework and routing |
+| `scikit-learn` | ≥1.8.0 | TF-IDF vectorization and cosine similarity |
+| `datasketch` | ≥1.10.0 | MinHash signatures and LSH indexing |
+| `nltk` | ≥3.9.4 | Tokenization, stopword removal, lemmatization |
+| `werkzeug` | ≥3.1.8 | Secure filename handling (Flask dependency) |
+| `PyPDF2` | ≥3.0.1 | PDF text extraction *(optional)* |
+| `python-docx` | ≥1.2.0 | DOCX text extraction *(optional)* |
 
-> **Note:** NLTK resources (`punkt`, `stopwords`, `wordnet`) are downloaded automatically on first run.
+> NLTK resources (`punkt`, `punkt_tab`, `stopwords`, `wordnet`) are downloaded automatically on first run.
 
 ---
 
@@ -251,8 +307,9 @@ pytest tests/
 
 - Submission history is stored **in memory only** and resets when the server restarts
 - The corpus loads `.txt` files from the `corpus/` directory at startup
-- Uploaded PDF and DOCX files are extracted to plain text before being saved to the corpus
-- For production use, consider replacing in-memory history with a database such as **SQLite** or **PostgreSQL**
+- Uploaded PDF and DOCX files are extracted to plain text and saved to the corpus
+- For production use, replace in-memory history with a database such as **SQLite** or **PostgreSQL**
+- `debug=True` is set in `app.py` — disable this before any public deployment
 
 ---
 
@@ -260,9 +317,13 @@ pytest tests/
 
 - [ ] Persistent history storage with a database
 - [ ] User authentication and per-user corpus management
-- [ ] Support for additional file formats (`.odt`, `.rtf`)
-- [ ] Internet-scale detection via external academic APIs
+- [ ] Semantic similarity via sentence embeddings (`sentence-transformers`)
+- [ ] Internet-scale detection via external academic APIs (Google Scholar, Semantic Scholar)
 - [ ] Exportable plagiarism reports in PDF format
+- [ ] Support for additional file formats (`.odt`, `.rtf`)
+- [ ] Incremental TF-IDF updates (avoid full rebuild on every corpus change)
+- [ ] Configurable similarity thresholds and weights from the UI
+- [ ] OCR support for scanned PDFs
 
 ---
 
@@ -270,8 +331,7 @@ pytest tests/
 
 <br/>
 
-Made with ❤️ and dedication by
-
+Made with dedication by
 **Group 6 · Wolkite University**
 
 <br/>
