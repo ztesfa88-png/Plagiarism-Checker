@@ -5,10 +5,13 @@
 ## <img width="109" height="96" alt="image" src="https://github.com/user-attachments/assets/c7239e10-61c0-466f-8f6e-5ab695f72cbd" />
 
 **College of Computing and Informatics**
+<br/>
 **Department of Software Engineering**
+<br/>
 *Fundamentals of Artificial Intelligence*
+<br/>
 *SEng7413 · 3rd Year*
-
+<br/>
 Academic Year and Semester: **2018, Semester 2**
 
 <br/>
