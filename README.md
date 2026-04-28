@@ -10,7 +10,7 @@
 <br/>
 *Fundamentals of Artificial Intelligence*
 <br/>
-*SEng7413 · 3rd Year*
+*SEng9132 · 3rd Year*
 <br/>
 Academic Year and Semester: **2018, Semester 2**
 
@@ -31,6 +31,7 @@ Academic Year and Semester: **2018, Semester 2**
 <br/>
 
 **Submitted to:** Mr. Belay
+<br/>
 **Submission Date:** 30/08/2018
 
 ---
