@@ -4,12 +4,13 @@
 
 ---
 
-## 
+## <img width="109" height="96" alt="image" src="https://github.com/user-attachments/assets/c7239e10-61c0-466f-8f6e-5ab695f72cbd" />
+
 
 **College of Computing and Informatics**
 **Department of Software Engineering**
 
-*Fundamentals of Software Security*
+*Fundamentals of Artificial Intelligence*
 
 **SEng7413 · 3rd Year**
 Academic Year and Semester: **2018, Semester 2**
