@@ -21,13 +21,13 @@ Academic Year and Semester: **2018, Semester 2**
 
 | # | Name | ID |
 |:--:|:--|:--|
-| 1 | Samir Girle | NSR/0673/16 |
-| 2 | Temesgen Teka | NSR/1007/16 |
-| 3 | Ysmalem Temesgen | NSR/0843/16 |
-| 4 | Yohannes Girma | NSR/0850/16 |
-| 5 | Yonas Abera | NSR/0857/16 |
-| 6 | Temesgen Demeke | NSR/0765/16 |
-| 7 | Zelalem Tesfa | NSR/0868/16 |
+| 1 | Zelalem Tesfa | NSR/0868/16 |
+| 2 | Samir Girle | NSR/0673/16 |
+| 3 | Temesgen Teka | NSR/1007/16 |
+| 4 | Ysmalem Temesgen | NSR/0843/16 |
+| 5 | Yohannes Girma | NSR/0850/16 |
+| 6 | Yonas Abera | NSR/0857/16 |
+| 7 | Temesgen Demeke | NSR/0765/16 |
 
 <br/>
 
