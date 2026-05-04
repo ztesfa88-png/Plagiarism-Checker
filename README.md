@@ -5,7 +5,9 @@
 ## <img width="109" height="96" alt="image" src="https://github.com/user-attachments/assets/c7239e10-61c0-466f-8f6e-5ab695f72cbd" />
 
 **College of Computing and Informatics**
+<br/>
 **Department of Software Engineering**
+<br/>
 *Fundamentals of Artificial Intelligence*
 *SEng9132 · 3rd Year*
 
@@ -18,7 +20,7 @@ Academic Year and Semester: **2018, Semester 2**
 | # | Name | ID |
 |:--:|:--|:--|
 | 1 | Zelalem Tesfa | NSR/0868/16 |
-| 2 | Samir Girle | NSR/0673/16 |
+| 2 | Samir Gebi| NSR/0673/16 |
 | 3 | Temesgen Teka | NSR/1007/16 |
 | 4 | Ysmalem Temesgen | NSR/0843/16 |
 | 5 | Yohannes Girma | NSR/0850/16 |
@@ -28,6 +30,7 @@ Academic Year and Semester: **2018, Semester 2**
 <br/>
 
 **Submitted to:** Mr. Belay
+<br/>
 **Submission Date:** 30/08/2018
 
 ---
