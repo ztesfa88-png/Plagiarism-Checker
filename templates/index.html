@@ -9,7 +9,7 @@
 <body>
     <div class="app">
         <div class="header">
-            <div class="badge">Wolkite University · Group 6</div>
+            <div class="badge">Wolkite University</div>
             <h1>Plagiarism Detection System</h1>
             <p>Unsupervised ML · TF-IDF + MinHash LSH · Ensemble Scoring</p>
         </div>
@@ -56,14 +56,7 @@
                     <button class="btn-primary" id="check-btn" onclick="runCheck()">Analyze ↗</button>
                 </div>
 
-                <!-- Sentence Check Section -->
-                <div style="margin-top: 1.5rem; padding: 1rem; background: #fef3c7; border-radius: 6px; border: 1px solid #f59e0b;">
-                    <div style="font-size: 13px; font-weight: 500; margin-bottom: 8px; color: #92400e;">🔍 Quick Sentence Check</div>
-                    <textarea class="input-area" id="sentence-input" placeholder="Paste a single sentence here to check against corpus..." style="min-height: 80px; background: #ffffff;"></textarea>
-                    <div style="margin-top: 8px;">
-                        <button class="btn-primary" style="background: #f59e0b; color: #92400e;" onclick="checkSentence()">Check Sentence ↗</button>
-                    </div>
-                </div>
+
             </div>
 
             <div class="card">
@@ -185,49 +178,10 @@
             document.getElementById('word-count').textContent = '0 words';
             document.getElementById('file-input').value = '';
             document.getElementById('file-list').innerHTML = '';
-            document.getElementById('sentence-input').value = '';
             const compareBtn = document.getElementById('compare-btn');
             compareBtn.disabled = true;
             compareBtn.style.opacity = '0.4';
             compareBtn.style.cursor = 'not-allowed';
-        }
-
-        async function checkSentence() {
-            const sentence = document.getElementById('sentence-input').value.trim();
-            
-            if (!sentence || sentence.length < 10) {
-                alert('Please enter at least a sentence to check');
-                return;
-            }
-            
-            const btn = document.querySelector('button[onclick="checkSentence()"]');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> Checking…';
-            
-            try {
-                const response = await fetch('/check_sentence', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sentence: sentence })
-                });
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Check failed');
-                }
-                
-                const result = await response.json();
-                
-                currentResult = result;
-                showResult(result);
-                switchTab('results');
-                
-            } catch(err) {
-                alert('Sentence check failed: ' + err.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = 'Check Sentence ↗';
-            }
         }
 
         const fileInput = document.getElementById('file-input');

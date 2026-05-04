@@ -7,7 +7,7 @@
 **College of Computing and Informatics**
 **Department of Software Engineering**
 *Fundamentals of Artificial Intelligence*
-*SEng7413 · 3rd Year*
+*SEng9132 · 3rd Year*
 
 Academic Year and Semester: **2018, Semester 2**
 
@@ -63,7 +63,6 @@ It uses a **hybrid unsupervised machine learning approach** — combining **TF-I
 | Feature | Description |
 |:--|:--|
 | 📄 **Document Analysis** | Paste full text for document-level plagiarism scanning |
-| 🔍 **Sentence Check** | Instantly check a single sentence against the entire corpus |
 | 📁 **Multiple File Upload** | Upload multiple `.txt`, `.pdf`, or `.docx` files at once |
 | 🔀 **File-to-File Comparison** | Compare uploaded files against each other — works without a corpus |
 | 🗂️ **Corpus Management** | Add, upload, or remove reference documents via the UI |
@@ -147,7 +146,6 @@ PlagiarismChecker/
 |:--:|:--|:--|
 | `GET` | `/` | Serves the web interface |
 | `POST` | `/check` | Analyze pasted text against corpus |
-| `POST` | `/check_sentence` | Check a single sentence against the corpus |
 | `POST` | `/upload` | Upload multiple files and check against corpus |
 | `POST` | `/compare` | Compare multiple files against each other (no corpus needed) |
 | `GET` | `/history` | Retrieve in-memory submission history |
@@ -221,10 +219,6 @@ http://127.0.0.1:5000
 
 #### Paste Text
 - Paste any block of text (min 20 characters) and click **Analyze**
-
-#### Quick Sentence Check
-- Paste a single sentence in the yellow box and click **Check Sentence**
-- Requires corpus documents to be present
 
 #### Empty Corpus Warning
 - A yellow banner appears automatically when the corpus is empty
@@ -331,7 +325,7 @@ Tests cover:
 
 <br/>
 
-Made with ❤️ and dedication by
+Made with dedication by
 **Group 6 · Wolkite University**
 
 <br/>
