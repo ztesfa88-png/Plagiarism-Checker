@@ -9,9 +9,16 @@
 <body>
     <div class="app">
         <div class="header">
-            <div class="badge">Wolkite University</div>
-            <h1>Plagiarism Detection System</h1>
-            <p>Unsupervised ML · TF-IDF + MinHash LSH · Ensemble Scoring</p>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <div class="badge">Wolkite University</div>
+                    <h1>Plagiarism Detection System</h1>
+                    <p>Unsupervised ML · TF-IDF + MinHash LSH · Ensemble Scoring</p>
+                </div>
+                <button id="theme-toggle" class="theme-toggle-btn" title="Toggle dark mode">
+                    <span class="toggle-icon">☀</span>
+                </button>
+            </div>
         </div>
 
         <div class="tabs">
@@ -26,32 +33,32 @@
                 <div class="section-title">Upload or Paste Document</div>
 
                 <!-- Empty corpus warning -->
-                <div id="corpus-warning" style="display:none;margin-bottom:1rem;padding:10px 14px;background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;font-size:13px;color:#92400e;">
+                <div id="corpus-warning" style="display:none;margin-bottom:1rem;padding:10px 14px;background:var(--warning-bg);border:1px solid var(--warning-border);border-radius:6px;font-size:13px;color:var(--warning-text);">
                     ⚠️ <strong>Corpus is empty.</strong> "Check vs Corpus" and sentence checks will return 0% until you add reference documents.
                     Use <strong>Compare Files</strong> to compare uploaded files against each other without a corpus,
-                    or go to the <a href="#" onclick="switchTab('corpus');return false;" style="color:#92400e;text-decoration:underline;">Corpus tab</a> to add documents.
+                    or go to the <a href="#" onclick="switchTab('corpus');return false;" style="color:var(--warning-text);text-decoration:underline;">Corpus tab</a> to add documents.
                 </div>
-                <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f8fafc; border-radius: 6px; border: 2px dashed #cbd5e1;">
+                <div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-primary); border-radius: 6px; border: 2px dashed var(--border-secondary);">
                     <div style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">📁 Upload Files</div>
-                    <input type="file" id="file-input" accept=".txt,.pdf,.docx" multiple style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; margin-bottom: 8px;" />
-                    <div style="font-size: 12px; color: #64748b;">Supported: .txt, .pdf, .docx (Max 16MB each) · Select multiple files</div>
+                    <input type="file" id="file-input" accept=".txt,.pdf,.docx" multiple style="width: 100%; padding: 8px; border: 1px solid var(--border-secondary); border-radius: 4px; margin-bottom: 8px;" />
+                    <div style="font-size: 12px; color: var(--text-secondary);">Supported: .txt, .pdf, .docx (Max 16MB each) · Select multiple files</div>
                     <div id="file-list" style="margin-top: 8px;"></div>
                     <div style="display:flex;gap:8px;margin-top:8px;">
                         <button class="btn-primary" style="flex:1;" onclick="uploadFile()">Check vs Corpus ↗</button>
-                        <button id="compare-btn" class="btn-primary" style="flex:1;background:#4f46e5;opacity:0.4;cursor:not-allowed;" onclick="compareFiles()" disabled>Compare Files ↗</button>
+                        <button id="compare-btn" class="btn-primary" style="flex:1;background:var(--accent);opacity:0.4;cursor:not-allowed;" onclick="compareFiles()" disabled>Compare Files ↗</button>
                     </div>
-                    <div style="font-size:11px;color:#94a3b8;margin-top:6px;">
+                    <div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;">
                         "Check vs Corpus" — checks each file against corpus &nbsp;|&nbsp; "Compare Files" — checks files against each other (works without corpus)
                     </div>
                 </div>
 
                 <!-- Or Separator -->
-                <div style="text-align: center; margin: 1.5rem 0; color: #cbd5e1; font-size: 12px; font-weight: 500;">— OR —</div>
+                <div style="text-align: center; margin: 1.5rem 0; color: var(--border-secondary); font-size: 12px; font-weight: 500;">— OR —</div>
 
                 <!-- Text Paste Section -->
                 <textarea class="input-area" id="doc-input" placeholder="Or paste your text here for plagiarism analysis..."></textarea>
                 <div class="row-end">
-                    <span id="word-count" style="font-size:12px;color:var(--color-text-secondary);">0 words</span>
+                    <span id="word-count" style="font-size:12px;color:var(--text-secondary);">0 words</span>
                     <button class="btn-secondary" onclick="clearInput()">Clear</button>
                     <button class="btn-primary" id="check-btn" onclick="runCheck()">Analyze ↗</button>
                 </div>
@@ -72,7 +79,7 @@
 
         <div id="tab-results" style="display:none">
             <div id="results-empty" class="empty-state">
-                <div style="font-size:32px;color:var(--color-border-secondary);">◎</div>
+                <div style="font-size:32px;color:var(--border-secondary);">◎</div>
                 <p>No analysis yet. Submit a document to see results.</p>
             </div>
             <div id="results-content" style="display:none">
@@ -87,8 +94,8 @@
                                 <span style="font-size:14px;font-weight:500;">Risk level:</span>
                                 <span class="risk-badge" id="res-risk">—</span>
                             </div>
-                            <div class="score-bar"><div class="score-bar-fill" id="res-bar" style="width:0%;background:#E24B4A;"></div></div>
-                            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-secondary);margin-top:4px;">
+                            <div class="score-bar"><div class="score-bar-fill" id="res-bar" style="width:0%;background:var(--error);"></div></div>
+                            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-secondary);margin-top:4px;">
                                 <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
                             </div>
                         </div>
@@ -113,7 +120,7 @@
 
                 <div class="card">
                     <div class="section-title">Analysis explanation</div>
-                    <div id="explanation" style="font-size:13px;line-height:1.7;color:var(--color-text-secondary);"></div>
+                    <div id="explanation" style="font-size:13px;line-height:1.7;color:var(--text-secondary);"></div>
                 </div>
             </div>
         </div>
@@ -121,10 +128,10 @@
         <div id="tab-corpus" style="display:none">
             <div class="card">
                 <div class="section-title">Upload file to corpus</div>
-                <div style="padding: 1rem; background: #f8fafc; border-radius: 6px; border: 2px dashed #cbd5e1;">
+                <div style="padding: 1rem; background: var(--bg-primary); border-radius: 6px; border: 2px dashed var(--border-secondary);">
                     <div style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">📁 Upload File</div>
-                    <input type="file" id="corpus-file-input" accept=".txt,.pdf,.docx" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; margin-bottom: 8px;" />
-                    <div style="font-size: 12px; color: #64748b; margin-bottom: 8px;">Supported: .txt, .pdf, .docx (Max 16MB)</div>
+                    <input type="file" id="corpus-file-input" accept=".txt,.pdf,.docx" style="width: 100%; padding: 8px; border: 1px solid var(--border-secondary); border-radius: 4px; margin-bottom: 8px;" />
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Supported: .txt, .pdf, .docx (Max 16MB)</div>
                     <button class="btn-primary" style="width: 100%;" onclick="uploadToCorpus()">Upload to Corpus ↗</button>
                 </div>
             </div>
@@ -199,7 +206,7 @@
             }
 
             list.innerHTML = Array.from(fileInput.files).map(f =>
-                `<div style="font-size:12px;color:#475569;padding:3px 0;border-bottom:1px solid #e2e8f0;">📄 ${f.name} <span style="color:#94a3b8;">(${(f.size/1024).toFixed(1)} KB)</span></div>`
+                `<div style="font-size:12px;color:var(--text-tertiary);padding:3px 0;border-bottom:1px solid var(--border-primary);">📄 ${f.name} <span style="color:var(--text-secondary);">(${(f.size/1024).toFixed(1)} KB)</span></div>`
             ).join('');
 
             if (count >= 2) {
@@ -302,13 +309,13 @@
 
             // Per-file breakdown
             const tm = document.getElementById('top-matches');
-            tm.innerHTML = `<div style="font-size:12px;color:#64748b;margin-bottom:10px;">${results.length} files analyzed</div>` +
+            tm.innerHTML = `<div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;">${results.length} files analyzed</div>` +
                 results.map(r => `
                     <div class="match-item" style="cursor:pointer;" onclick='showResult(${JSON.stringify(r)})'>
                         <div class="match-header">
                             <div style="flex:1;">
                                 <div class="match-title">📄 ${r.filename}</div>
-                                <div style="font-size:11px;color:#64748b;margin-top:2px;">Click to view full details · ${(r.flagged_sentences||[]).length} flagged sentences</div>
+                                <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Click to view full details · ${(r.flagged_sentences||[]).length} flagged sentences</div>
                             </div>
                             <span class="risk-badge risk-${r.risk_level.toLowerCase()}">${r.risk_level}</span>
                             <span class="match-score" style="margin-left:8px;">${Math.round(r.ensemble_score*100)}%</span>
@@ -316,7 +323,7 @@
                         <div class="score-bar"><div class="score-bar-fill" style="width:${Math.round(r.ensemble_score*100)}%;background:${getBarColor(r.ensemble_score)};"></div></div>
                     </div>`).join('');
 
-            document.getElementById('flagged-sentences').innerHTML = '<p style="font-size:13px;color:#64748b;">Click a file above to see its flagged sentences.</p>';
+            document.getElementById('flagged-sentences').innerHTML = '<p style="font-size:13px;color:var(--text-secondary);">Click a file above to see its flagged sentences.</p>';
             const topFile = results.reduce((a, b) => b.ensemble_score > a.ensemble_score ? b : a);
             document.getElementById('explanation').textContent = `Analyzed ${results.length} files. Average similarity: ${Math.round(avgScore*100)}%. Highest: ${topFile.filename} at ${Math.round(maxScore*100)}%.`;
         }
@@ -390,7 +397,7 @@
 
             const tm = document.getElementById('top-matches');
             tm.innerHTML = `
-                <div style="font-size:12px;color:#64748b;margin-bottom:10px;">
+                <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;">
                     ${data.file_count} files · ${pairs.length} pair${pairs.length > 1 ? 's' : ''} compared
                     ${data.corpus_results && data.corpus_results.length ? ' · also checked against corpus' : ' · <em>no corpus — file-to-file only</em>'}
                 </div>` +
@@ -398,8 +405,8 @@
                     <div class="match-item" style="cursor:pointer;" onclick='showPairDetail(${JSON.stringify(p)})'>
                         <div class="match-header">
                             <div style="flex:1;">
-                                <div class="match-title">📄 ${p.file_a} <span style="color:#94a3b8;font-weight:400;">vs</span> 📄 ${p.file_b}</div>
-                                <div style="font-size:11px;color:#64748b;margin-top:2px;">
+                                <div class="match-title">📄 ${p.file_a} <span style="color:var(--text-secondary);font-weight:400;">vs</span> 📄 ${p.file_b}</div>
+                                <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">
                                     Cosine: ${Math.round(p.cosine_score*100)}% · Jaccard: ${Math.round(p.jaccard_score*100)}% · ${p.flagged_sentences.length} flagged sentences · Click to expand
                                 </div>
                             </div>
@@ -409,7 +416,7 @@
                         <div class="score-bar"><div class="score-bar-fill" style="width:${Math.round(p.ensemble_score*100)}%;background:${getBarColor(p.ensemble_score)};"></div></div>
                     </div>`).join('') +
                 (data.corpus_results && data.corpus_results.length ? `
-                    <div style="margin-top:16px;font-size:12px;font-weight:500;color:#475569;margin-bottom:8px;">📚 Corpus comparison</div>` +
+                    <div style="margin-top:16px;font-size:12px;font-weight:500;color:var(--text-tertiary);margin-bottom:8px;">📚 Corpus comparison</div>` +
                     data.corpus_results.map(r => `
                         <div class="match-item">
                             <div class="match-header">
@@ -421,7 +428,7 @@
                         </div>`).join('') : '');
 
             document.getElementById('flagged-sentences').innerHTML =
-                '<p style="font-size:13px;color:#64748b;">Click a pair above to see its flagged sentences.</p>';
+                '<p style="font-size:13px;color:var(--text-secondary);">Click a pair above to see its flagged sentences.</p>';
             document.getElementById('explanation').textContent =
                 `Compared ${data.file_count} files across ${pairs.length} pair(s). Highest similarity: ${maxPair.file_a} vs ${maxPair.file_b} at ${Math.round(maxPair.ensemble_score*100)}% (${maxPair.risk_level}). Average: ${Math.round(avgScore*100)}%.`;
         }
@@ -429,20 +436,20 @@
         function showPairDetail(pair) {
             const fs = document.getElementById('flagged-sentences');
             if (!pair.flagged_sentences || pair.flagged_sentences.length === 0) {
-                fs.innerHTML = `<p style="font-size:13px;color:#64748b;">No sentences above threshold between <strong>${pair.file_a}</strong> and <strong>${pair.file_b}</strong>.</p>`;
+                fs.innerHTML = `<p style="font-size:13px;color:var(--text-secondary);">No sentences above threshold between <strong>${pair.file_a}</strong> and <strong>${pair.file_b}</strong>.</p>`;
             } else {
                 fs.innerHTML = `
-                    <div style="font-size:12px;font-weight:500;color:#475569;margin-bottom:10px;">
+                    <div style="font-size:12px;font-weight:500;color:var(--text-tertiary);margin-bottom:10px;">
                         Flagged sentences: <strong>${pair.file_a}</strong> vs <strong>${pair.file_b}</strong>
                     </div>` +
                     pair.flagged_sentences.map(s => `
                         <div class="sentence-match">
                             <div style="margin-bottom:8px;">
-                                <div style="font-size:11px;font-weight:500;color:#64748b;margin-bottom:4px;">FROM ${pair.file_a}:</div>
+                                <div style="font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:4px;">FROM ${pair.file_a}:</div>
                                 <div><span class="highlight-red">"${s.submitted}"</span></div>
                             </div>
                             <div style="border-top:1px solid #e2e8f0;padding-top:8px;">
-                                <div style="font-size:11px;font-weight:500;color:#64748b;margin-bottom:4px;">MATCHES IN ${pair.file_b}:</div>
+                                <div style="font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:4px;">MATCHES IN ${pair.file_b}:</div>
                                 <div><span class="highlight">"${s.matched}"</span></div>
                                 <div class="sub" style="margin-top:8px;">
                                     <strong>${Math.round((s.similarity||0)*100)}% Similar</strong> —
@@ -575,7 +582,7 @@
                         <div class="match-header">
                             <div style="flex:1;">
                                 <div class="match-title">📄 ${m.title || m.doc_id}</div>
-                                <div style="font-size:11px;color:#64748b;margin-top:4px;">File from corpus</div>
+                                <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">File from corpus</div>
                             </div>
                             <span class="match-score">${Math.round((m.score||0)*100)}% Match</span>
                         </div>
@@ -599,7 +606,7 @@
                         ${r.flagged_sentences.map((s, idx) => `
                             <div class="sentence-match" style="border-left: 4px solid #ef4444;">
                                 <div style="margin-bottom:8px;">
-                                    <div style="font-size:11px;font-weight:500;color:#64748b;margin-bottom:4px;">MATCH #${idx+1} - FILE: <strong>${s.source}</strong></div>
+                                    <div style="font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:4px;">MATCH #${idx+1} - FILE: <strong>${s.source}</strong></div>
                                     <div><span class="highlight">"${s.matched}"</span></div>
                                 </div>
                                 <div class="sub" style="margin-top:8px;">
@@ -777,6 +784,27 @@
 
         // Load initial corpus count
         loadCorpus();
+
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('theme-toggle');
+        const toggleIcon = themeToggle.querySelector('.toggle-icon');
+        const body = document.body;
+
+        // Check for saved theme preference or default to light mode
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        if (currentTheme === 'dark') {
+            body.classList.add('dark-mode');
+            toggleIcon.textContent = '☽';
+        } else {
+            toggleIcon.textContent = '☀';
+        }
+
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark-mode');
+            const isDark = body.classList.contains('dark-mode');
+            toggleIcon.textContent = isDark ? '☽' : '☀';
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        });
     </script>
 </body>
 </html>
