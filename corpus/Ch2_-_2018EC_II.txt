@@ -1,0 +1,548 @@
+Fundamental of Software
+Security
+Alemu Woldie
+awcourseapp@gmail.com
+Software Engineering
+Wolkite, Ethiopia
+February 16, 2026 3rdYear Software Engineering February 8th, 2026 1/23Chapter Two - Secure Models & Design Principles
+After completing this chapter, You're expected to:
+Understand the two fundamental network security
+models
+Know the core security requirements and their
+implementations
+Apply secure design principles in software development
+Assess risks and implement appropriate mitigation
+techniques
+Understand threat modeling and secure architecture
+tenets
+3rdYear Software Engineering February 8th, 2026 2/23Why Security Models Matter
+Purpose of Security Models
+Provide structured frameworks for understanding, designing,
+and implementing security measures in networked environments
+Systematic Approaches : Enable consistent
+implementation across systems
+Early Requirements Identication : Help identify
+security needs during design phase
+Risk Management Support : Facilitate assessment
+and mitigation strategies
+Communication Framework : Standard language
+for discussing security concerns
+Key Insight
+Models transform abstract security concepts into
+implementable design patterns
+3rdYear Software Engineering February 8th, 2026 3/23General Model for Network Security
+A message is to be transferred from one party to
+another across some sort of Internet service.
+The two parties must cooperate for the exchange to
+take place.
+A logical information channel is established by dening
+routes & communication protocols by the principals.
+Security aspects come into play when it is necessary to
+protect the information transmission from an
+opponent.
+All the techniques for providing security have two
+components:
+A security-related transformation on the information
+to be sent
+Some secret information shared by the two principals
+3rdYear Software Engineering February 8th, 2026 4/23General Model for Network Security
+Figure 1: Model for Network Security
+3rdYear Software Engineering February 8th, 2026 5/23Four Design Tasks
+The general model shows that there are four basic
+tasks in designing a particular security service:
+1Design an algorithm for performing the
+security-related transformation.
+2Generate the secret information to be used with the
+algorithm.
+3Develop methods for the distribution and sharing of
+the secret information.
+4Specify protocols to be used by principals that makes
+use of the security algorithm & secret information.
+Trusted Third Party
+May be needed to achieve secure transmission:
+Responsible for distributing secret information while
+keeping it from opponents
+Arbitrate disputes between principals concerning
+message authenticity
+3rdYear Software Engineering February 8th, 2026 6/23Network Access Security Model
+There are other security-related situations of interest
+that do not neatly t the general model
+This model re
+ects a concern for protecting an
+information system from unwanted access.
+Figure 2: Network Access Security Model
+3rdYear Software Engineering February 8th, 2026 7/23Types of Threats
+Most users are familiar with the concerns caused by
+the existence of hackers, who attempt to penetrate
+systems that can be accessed over a network.
+The hacker can be someone who, with no malign
+intent, simply gets satisfaction from breaking and
+entering a computer system.
+The intruder can be a disgruntled employee who
+wishes to do damage or a criminal who seeks to exploit
+computer assets for nancial gain.
+Another type of unwanted access is the placement in a
+computer system of logic that exploits vulnerabilities
+in the system.
+3rdYear Software Engineering February 8th, 2026 8/23Two-Layer Defense Strategy
+Gatekeeper Functions (First Line)
+Password-based login procedures to deny access to
+unauthorized users
+Screening logic to detect and reject worms, viruses,
+and similar attacks
+Firewalls and proxy servers
+Network segmentation and isolation
+Internal Controls (Second Line)
+Variety of internal controls that monitor activity
+Analyze stored information to detect unwanted
+intruders
+Host-based intrusion detection systems
+Log analysis and security monitoring
+3rdYear Software Engineering February 8th, 2026 9/23Eight Security Dimensions
+Dimension Implementation Techniques
+Condentiality Encryption (AES, RSA, ECC), Access Con-
+trol Lists, Data Classication, VPN, MPLS
+Integrity Hash Functions (MD5, SHA), Digital Sig-
+natures, Anti-virus software, File integrity
+checking
+Authentication Shared secret keys, PKI, Digital certicates,
+Multi-factor authentication
+Access Control Password policies, ACLs, Firewalls, Role-
+Based Access Control (RBAC)
+Availability IDS/IPS, Network redundancy, Business Con-
+tinuity/Disaster Recovery (BC/DR)
+Non-Repudiation System logs, Digital signatures, Timestamp-
+ing services, Audit trails
+Privacy Network Address Translation (NAT), Encryp-
+tion, Anonymization techniques
+Accountability Logging systems, User activity monitoring,
+Forensic analysis tools
+3rdYear Software Engineering February 8th, 2026 10/23Mapping Dimensions to Threats
+How Dimensions Address Vulnerabilities
+Each security dimension addresses specic types of network
+vulnerabilities:
+Condentiality Eavesdropping, data interception
+Integrity Data tampering, unauthorized modication
+Authentication Impersonation, identity spoong
+Access Control Unauthorized access, privilege
+escalation
+Availability Denial of Service (DoS), system
+downtime
+Non-Reimport re
+import nltk
+from pathlib import Path
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from datasketch import MinHash, MinHashLSH
+
+# Download required NLTK data
+try:
+    import nltk
+    nltk.download('punkt', quiet=True)
+    nltk.download('punkt_tab', quiet=True)
+    nltk.download('stopwords', quiet=True)
+    nltk.download('wordnet', quiet=True)
+except:
+    pass  # Continue even if downloads fail
+
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import sent_tokenize
+
+_WORD_RE = re.compile(r"\b\w+\b", re.UNICODE)
+lemmatizer = WordNetLemmatizer()
+stop_words = set(stopwords.words('english'))
+
+
+def preprocess_text(text: str) -> str:
+    """Preprocess text: lowercase, remove punctuation, stopwords, lemmatize."""
+    text = text.lower()
+    tokens = _WORD_RE.findall(text)
+    tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words]
+    return ' '.join(tokens)
+
+
+def create_shingles(text: str, k: int = 3) -> list[str]:
+    """Create k-shingles from preprocessed text."""
+    tokens = preprocess_text(text).split()
+    if len(tokens) < k:
+        return [' '.join(tokens)]
+    return [' '.join(tokens[i:i+k]) for i in range(len(tokens) - k + 1)]
+
+
+class Document:
+    def __init__(self, path: Path, title: str = None):
+        self.path = path
+        self.title = title or path.stem
+        self.raw_text = path.read_text(encoding="utf-8")
+        self.preprocessed = preprocess_text(self.raw_text)
+        try:
+            self.sentences = sent_tokenize(self.raw_text)
+        except:
+            # Fallback: split by periods if NLTK fails
+            self.sentences = [s.strip() for s in self.raw_text.split('.') if s.strip()]
+        self.shingles = create_shingles(self.raw_text)
+        self.minhash = self._create_minhash()
+        self.word_count = len(self.raw_text.split())
+
+    def _create_minhash(self, num_perm: int = 128) -> MinHash:
+        """Create MinHash signature for LSH."""
+        m = MinHash(num_perm=num_perm)
+        for shingle in self.shingles:
+            m.update(shingle.encode('utf8'))
+        return m
+
+
+class PlagiarismDetector:
+    def __init__(self, corpus_dir: str | Path):
+        self.corpus_dir = Path(corpus_dir)
+        self.documents = []
+        self.tfidf_vectorizer = None
+        self.tfidf_matrix = None
+        self.lsh_index = MinHashLSH(threshold=0.5, num_perm=128)
+        self._load_corpus()
+
+    def _load_corpus(self):
+        """Load and index corpus documents."""
+        if not self.corpus_dir.exists():
+            self.corpus_dir.mkdir(parents=True, exist_ok=True)
+            return
+
+        self.documents = []
+        for path in sorted(self.corpus_dir.glob("*.txt")):
+            doc = Document(path)
+            self.documents.append(doc)
+
+        self._rebuild_index()
+
+    def _rebuild_index(self):
+        """Rebuild the TF-IDF matrix and MinHash index from the current corpus."""
+        self.lsh_index = MinHashLSH(threshold=0.5, num_perm=128)
+        if not self.documents:
+            self.tfidf_vectorizer = None
+            self.tfidf_matrix = None
+            return
+
+        for doc in self.documents:
+            self.lsh_index.insert(doc.title, doc.minhash)
+
+        texts = [doc.preprocessed for doc in self.documents]
+        self.tfidf_vectorizer = TfidfVectorizer()
+        self.tfidf_matrix = self.tfidf_vectorizer.fit_transform(texts)
+
+    def add_document(self, title: str, text: str):
+        """Add a new document to the corpus."""
+        filename = f"{title.replace(' ', '_')}.txt"
+        path = self.corpus_dir / filename
+        path.write_text(text, encoding='utf-8')
+
+        doc = Document(path, title=title)
+        self.documents.append(doc)
+        self._rebuild_index()
+
+    def remove_document(self, title: str):
+        """Remove a document from the corpus."""
+        normalized = title.replace(' ', '_')
+        self.documents = [
+            d for d in self.documents
+            if d.title != title and d.title != normalized and d.path.stem != normalized
+        ]
+
+        for path in self.corpus_dir.glob("*.txt"):
+            if path.stem == normalized or path.stem == title:
+                path.unlink()
+                break
+
+        self._rebuild_index()
+
+    def check_text(self, text: str) -> dict:
+        """Analyze text for plagiarism."""
+        if not self.documents:
+            return {
+                "cosine_score": 0.0,
+                "jaccard_score": 0.0,
+                "ensemble_score": 0.0,
+                "risk_level": "Low",
+                "top_matches": [],
+                "flagged_sentences": [],
+                "preprocessed_tokens": len(preprocess_text(text).split()),
+                "shingles_count": len(create_shingles(text)),
+                "explanation": "No documents in corpus. The analysis shows no plagiarism as there are no reference documents to compare against."
+            }
+
+        # Preprocess input
+        preprocessed_input = preprocess_text(text)
+        try:
+            input_sentences = sent_tokenize(text)
+        except:
+            input_sentences = [s.strip() for s in text.split('.') if s.strip()]
+        input_shingles = create_shingles(text)
+
+        # Create MinHash for input
+        input_minhash = MinHash(num_perm=128)
+        for shingle in input_shingles:
+            input_minhash.update(shingle.encode('utf8'))
+
+        # Find LSH candidates
+        candidates = self.lsh_index.query(input_minhash)
+        if not candidates:
+            candidates = [doc.title for doc in self.documents[:5]]  # Fallback to top 5
+
+        # Calculate similarities
+        cosine_scores = {}
+        jaccard_scores = {}
+
+        input_tfidf = self.tfidf_vectorizer.transform([preprocessed_input])
+
+        for doc in self.documents:
+            if doc.title in candidates:
+                # Cosine similarity
+                doc_idx = self.documents.index(doc)
+                cosine_sim = cosine_similarity(input_tfidf, self.tfidf_matrix[doc_idx:doc_idx+1])[0][0]
+                cosine_scores[doc.title] = cosine_sim
+
+                # Jaccard similarity (from MinHash)
+                jaccard_sim = input_minhash.jaccard(doc.minhash)
+                jaccard_scores[doc.title] = jaccard_sim
+
+        # Get top matches
+        top_matches = []
+        for title in candidates[:5]:
+            if title in cosine_scores:
+                score = 0.6 * cosine_scores[title] + 0.4 * jaccard_scores[title]
+                top_matches.append({
+                    "doc_id": title,
+                    "title": title,
+                    "score": round(score, 3),
+                    "note": f"Cosine: {cosine_scores[title]:.2f}, Jaccard: {jaccard_scores[title]:.2f}"
+                })
+
+        top_matches.sort(key=lambda x: x["score"], reverse=True)
+
+        # Calculate overall scores
+        if top_matches:
+            max_cosine = max(cosine_scores.values())
+            max_jaccard = max(jaccard_scores.values())
+            ensemble_score = 0.6 * max_cosine + 0.4 * max_jaccard
+        else:
+            max_cosine = max_jaccard = ensemble_score = 0.0
+
+        # Determine risk level
+        if ensemble_score >= 0.76:
+            risk_level = "Critical"
+        elif ensemble_score >= 0.51:
+            risk_level = "High"
+        elif ensemble_score >= 0.26:
+            risk_level = "Moderate"
+        else:
+            risk_level = "Low"
+
+        # Flag sentences with high similarity
+        flagged_sentences = []
+        for input_sent in input_sentences:
+            input_sent_preprocessed = preprocess_text(input_sent)
+            if len(input_sent_preprocessed.split()) < 3:
+                continue
+
+            input_sent_tfidf = self.tfidf_vectorizer.transform([input_sent_preprocessed])
+
+            for doc in self.documents:
+                for doc_sent in doc.sentences:
+                    doc_sent_preprocessed = preprocess_text(doc_sent)
+                    if len(doc_sent_preprocessed.split()) < 3:
+                        continue
+
+                    doc_sent_tfidf = self.tfidf_vectorizer.transform([doc_sent_preprocessed])
+                    sim = cosine_similarity(input_sent_tfidf, doc_sent_tfidf)[0][0]
+
+                    if sim >= 0.70:
+                        flagged_sentences.append({
+                            "submitted": input_sent.strip(),
+                            "matched": doc_sent.strip(),
+                            "source": doc.title,
+                            "similarity": round(sim, 3)
+                        })
+                        break  # Only flag once per input sentence
+
+        # Explanation
+        if ensemble_score == 0:
+            explanation = "The submitted text shows no significant similarity to any documents in the corpus. This suggests the content is original."
+        elif risk_level == "Low":
+            explanation = f"The text shows minimal similarity ({ensemble_score:.1%}) to corpus documents, indicating mostly original content with minor overlaps."
+        elif risk_level == "Moderate":
+            explanation = f"The text shows moderate similarity ({ensemble_score:.1%}) to corpus documents. Some sections may need review for potential plagiarism."
+        elif risk_level == "High":
+            explanation = f"The text shows high similarity ({ensemble_score:.1%}) to corpus documents. Multiple sections appear to be copied or closely paraphrased."
+        else:
+            explanation = f"The text shows critical similarity ({ensemble_score:.1%}) to corpus documents. Most content appears to be plagiarized."
+
+        return {
+            "cosine_score": round(max_cosine, 3),
+            "jaccard_score": round(max_jaccard, 3),
+            "ensemble_score": round(ensemble_score, 3),
+            "risk_level": risk_level,
+            "top_matches": top_matches,
+            "flagged_sentences": flagged_sentences,
+            "preprocessed_tokens": len(preprocessed_input.split()),
+            "shingles_count": len(input_shingles),
+            "explanation": explanation
+        }
+pudiation Transaction repudiation, audit
+disputes
+Privacy Information leakage, user tracking
+Accountability Anonymous attacks, untraceable
+actions3rdYear Software Engineering February 8th, 2026 11/23Core Design Principles
+1. Defense in Depth
+Multiple layers of security
+controls:
+Network perimeter security
+Host hardening
+Application security
+Data encryption
+2. Least Privilege
+Minimum necessary
+permissions:
+Role-based access control
+Need-to-know basis
+Regular privilege reviews4. Complete Mediation
+Every access must be checked
+No bypass mechanisms allowed
+Continuous authorization
+5. Economy of Mechanism
+Simple, understandable designs
+Minimal trusted computing base
+Avoid unnecessary complexity
+6. Open Design
+Security through transparency
+Peer review of implementations
+Use of standard algorithms
+3rdYear Software Engineering February 8th, 2026 12/23Core Design Principles
+3. Fail-Safe Defaults
+Default deny policies
+Secure by default congurations
+Graceful degradation under
+attack
+3rdYear Software Engineering February 8th, 2026 13/23Additional Design Principles
+7. Separation of Duties
+Critical operations
+require multiple people
+Prevention of fraud and
+errors
+Cross-training and
+backup capabilities
+Dual control for
+sensitive operations9. Work Factor
+Make attacks more
+costly than value gained
+Regular security
+updates and patches
+Monitor for new attack
+methods
+Security proportional to
+asset value
+3rdYear Software Engineering February 8th, 2026 14/23Additional Design Principles
+8. Psychological
+Acceptability
+Security shouldn't
+unduly hinder usability
+Intuitive security
+interfaces
+Clear security status
+feedback
+User training and
+awareness10. Design for Acceptable
+Risk
+Identify assets and their
+values
+Assess threats and
+vulnerabilities
+Calculate risk levels
+Implement controls
+proportional to risk
+3rdYear Software Engineering February 8th, 2026 15/23Network Security Design Best Practices
+With all the variations of network security design,
+some important questions surface:
+Identifying methods to reasonably secure components
+Knowing when you've done enough to lock things
+down
+Selecting the best design to maximize resilience
+There is no single answer that will suce, but there
+are right ways and wrong ways to integrate security
+into a network.
+Regardless of size/complexity, three main factors
+constitute a secure & resilient network:
+What you have (assets, systems)
+Where it's located (network architecture)
+How and when it's managed (operations)
+3rdYear Software Engineering February 8th, 2026 16/23Basic Practices for Network Security
+Here are some basic practices for building network security
+systems:
+Understanding network threats and attack vectors
+Doing what is essential but nothing more (avoid
+over-engineering)
+Regular vulnerability assessment and penetration
+testing
+Follow layering approach (defense in depth)
+Use well-dened trust models and security zones
+Implement proper service operations and maintenance
+procedures
+Continuous monitoring and incident response planning
+Key Principle: Keep It Simple
+Complex security systems are harder to manage, maintain,
+and verify. Simplicity enhances security.
+3rdYear Software Engineering February 8th, 2026 17/23Threat Modeling Process
+Systematic Approach to Security Design
+1Identify Assets : What needs protection?
+2Create Architecture Overview : System boundaries
+and data 
+ows
+3Decompose Application : Identify trust boundaries
+and components
+4Identify Threats : Using methodologies like STRIDE
+5Document Threats : Create comprehensive threat
+catalog
+6Rate Threats : Assess using DREAD or similar
+approach
+7Mitigate Threats : Design and implement
+countermeasures
+8Validate : Test threat model eectiveness
+3rdYear Software Engineering February 8th, 2026 18/23Host Hardening Process
+The Problem:
+Computers installed out of the
+box have known vulnerabilities
+Not just Windows computers -
+all operating systems
+Hackers can take them over
+easily
+They must be hardeneda
+complex process involving many
+actions
+Elements of Hardening:
+1Physical security measures
+2Secure installation and
+conguration
+3Fix known vulnerabilities
+(patching)
+4Turn o unnecessary services
+5Harden all remaining
+applications
+6Manage users and groups
+properly
+7Manage access permissions for
+les/directories
+8Assign permissions to specic
+users and groups
+9Back up the server regularly
+10Implement advanced protections
+(IDS, rewalls)
+Regular Maintenance
+Continuous vulnerability
+assessment
+Regular security updates
+Log monitoring and analysis
+Security policy enforcement
+3rdYear Software Engineering February 8th, 2026 19/23Thank You
+Secure Models for Network Security
+& Design Principles
+Questions?
+3rdYear Software Engineering February 8th, 2026 20/23
